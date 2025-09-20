@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name">Zap</string>
+
+    <!-- Onboarding Screen -->
+    <string name="onboarding_title_1">Find Charging Stations</string>
+    <string name="onboarding_desc_1">Locate EV charging stations near you with real-time availability</string>
+    <string name="onboarding_title_2">Easy Booking</string>
+    <string name="onboarding_desc_2">Book charging slots in advance and save time</string>
+    <string name="onboarding_title_3">Smart Charging</string>
+    <string name="onboarding_desc_3">Monitor your charging session and get notified when complete</string>
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="get_started">Get Started</string>
+
+    <!-- Auth Screens -->
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="dont_have_account">Don\'t have an account?</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="sign_in">Sign In</string>
+    <string name="name">Full Name</string>
+    <string name="welcome_back">Welcome Back!</string>
+    <string name="welcome_desc">Log in to your account to continue</string>
+
+    <string name="username">Username</string>
+    <string name="phone">Phone Number</string>
+    <string name="nic">NIC</string>
+    <string name="last_name">Last Name</string>
+    <string name="first_name">First Name</string>
+    <string name="station_operator">Station Operator</string>
+    <string name="ev_owner">EV Owner</string>
+    <string name="select_role">Select Role</string>
+    <string name="register_desc">Register with our system</string>
+    <string name="create_account">Create Account</string>
+
+    <!-- Home Screen -->
+    <string name="hello">Hello</string>
+    <string name="search_stations">Search stations</string>
+    <string name="nearby_stations">Nearby Stations</string>
+    <string name="available_now">Available Now</string>
+    <string name="my_bookings">My Bookings</string>
+    <string name="see_all">See All</string>
+
+    <!-- Profile Screen -->
+    <string name="profile">Profile</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="my_vehicles">My Vehicles</string>
+    <string name="payment_methods">Payment Methods</string>
+    <string name="settings">Settings</string>
+    <string name="help_support">Help and Support</string>
+    <string name="logout">Logout</string>
+
+    <!-- Navigation -->
+    <string name="home">Home</string>
+    <string name="bookings">Bookings</string>
+    <string name="map">Map</string>
+    <string name="station_operator_icon">Station Operator Icon</string>
+    <string name="ev_owner_icon">EV Owner Icon</string>
+
+
+</resources>
