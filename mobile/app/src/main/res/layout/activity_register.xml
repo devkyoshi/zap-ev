@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView android:id="@+id/nestedScrollView" xmlns:android="http://schemas.android.com/apk/res/android"
-
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nestedScrollView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
@@ -18,8 +19,8 @@
         <!-- App Logo -->
         <ImageView
             android:id="@+id/iv_app_logo"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:contentDescription="@string/app_name"
             android:src="@drawable/app_logo"
             app:layout_constraintEnd_toEndOf="parent"
@@ -62,7 +63,7 @@
             android:layout_height="wrap_content"
             android:text="@string/select_role"
             android:textColor="@color/primary_dark"
-            android:textSize="15sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -106,25 +107,25 @@
                     android:padding="12dp"
                     tools:ignore="UseCompoundDrawables">
 
-                <androidx.cardview.widget.CardView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="@android:color/transparent">
-
-                    <ImageView
-                        android:id="@+id/ev_owner_img"
+                    <androidx.cardview.widget.CardView
                         android:layout_width="36dp"
                         android:layout_height="36dp"
-                        android:src="@drawable/ic_ev_owner"
-                        android:scaleType="centerCrop"
-                        android:contentDescription="@string/ev_owner_icon"/>
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent">
 
-                </androidx.cardview.widget.CardView>
+                        <ImageView
+                            android:id="@+id/ev_owner_img"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:src="@drawable/ic_ev_owner"
+                            android:scaleType="centerCrop"
+                            android:contentDescription="@string/ev_owner_icon"/>
+
+                    </androidx.cardview.widget.CardView>
 
 
-            <TextView
+                    <TextView
                         android:id="@+id/tv_ev_owner"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -188,6 +189,22 @@
             </androidx.cardview.widget.CardView>
         </LinearLayout>
 
+        <!-- Personal Information Section Header -->
+        <TextView
+            android:id="@+id/tv_personal_info_header"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/personal_information"
+            android:textColor="@color/primary_dark"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="24dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ll_role_container" />
+
         <!-- First Name Input -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/first_name_input_layout"
@@ -195,7 +212,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="24dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:layout_marginEnd="8dp"
             android:hint="@string/first_name"
             android:textColorHint="@color/accent"
@@ -205,13 +222,13 @@
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxStrokeColor="@color/accent"
             app:endIconMode="clear_text"
-            app:endIconTint="@color/accent"
             app:hintTextColor="@color/accent"
+            app:endIconTint="@color/accent"
             app:startIconDrawable="@drawable/ic_person"
             app:startIconTint="@color/accent"
             app:layout_constraintEnd_toStartOf="@+id/last_name_input_layout"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/ll_role_container">
+            app:layout_constraintTop_toBottomOf="@id/tv_personal_info_header">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_first_name"
@@ -233,15 +250,15 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="24dp"
             android:hint="@string/last_name"
-            android:textColorHint="@color/accent"
             app:boxCornerRadiusTopStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxStrokeColor="@color/accent"
             app:endIconMode="clear_text"
-            app:endIconTint="@color/accent"
             app:hintTextColor="@color/accent"
+            app:endIconTint="@color/accent"
+            android:textColorHint="@color/accent"
             app:startIconDrawable="@drawable/ic_person"
             app:startIconTint="@color/accent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -269,15 +286,15 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
             android:hint="@string/nic"
-            android:textColorHint="@color/accent"
             app:boxCornerRadiusTopStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxStrokeColor="@color/accent"
             app:endIconMode="clear_text"
-            app:endIconTint="@color/accent"
             app:hintTextColor="@color/accent"
+            app:endIconTint="@color/accent"
+            android:textColorHint="@color/accent"
             app:startIconDrawable="@drawable/ic_id_card"
             app:startIconTint="@color/accent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -295,6 +312,22 @@
                 android:textColorHint="@color/accent" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Contact Details Section Header -->
+        <TextView
+            android:id="@+id/tv_contact_header"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/contact_details"
+            android:textColor="@color/primary_dark"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="24dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/nic_input_layout" />
+
         <!-- Email Input -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/email_input_layout"
@@ -305,7 +338,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
             android:hint="@string/email"
-            android:textColorHint="@color/accent"
+            app:hintTextColor="@color/accent"
             app:boxCornerRadiusTopStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
@@ -313,12 +346,12 @@
             app:boxStrokeColor="@color/accent"
             app:endIconMode="clear_text"
             app:endIconTint="@color/accent"
-            app:hintTextColor="@color/accent"
+            android:textColorHint="@color/accent"
             app:startIconDrawable="@drawable/ic_email"
             app:startIconTint="@color/accent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/nic_input_layout">
+            app:layout_constraintTop_toBottomOf="@id/tv_contact_header">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_email"
@@ -341,7 +374,6 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
             android:hint="@string/phone"
-            android:textColorHint="@color/accent"
             app:boxCornerRadiusTopStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
@@ -350,6 +382,7 @@
             app:endIconMode="clear_text"
             app:endIconTint="@color/accent"
             app:hintTextColor="@color/accent"
+            android:textColorHint="@color/accent"
             app:startIconDrawable="@drawable/ic_phone"
             app:startIconTint="@color/accent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -367,6 +400,22 @@
                 android:textColorHint="@color/accent" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Security Section Header -->
+        <TextView
+            android:id="@+id/tv_security_header"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/security"
+            android:textColor="@color/primary_dark"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="24dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/phone_input_layout" />
+
         <!-- Password Input -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/password_input_layout"
@@ -377,7 +426,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
             android:hint="@string/password"
-            android:textColorHint="@color/accent"
+            app:hintTextColor="@color/accent"
             app:boxCornerRadiusTopStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
@@ -385,12 +434,12 @@
             app:boxStrokeColor="@color/accent"
             app:endIconMode="password_toggle"
             app:endIconTint="@color/accent"
-            app:hintTextColor="@color/accent"
+            android:textColorHint="@color/accent"
             app:startIconDrawable="@drawable/ic_lock"
             app:startIconTint="@color/accent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/phone_input_layout">
+            app:layout_constraintTop_toBottomOf="@id/tv_security_header">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_password"
@@ -413,7 +462,6 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
             android:hint="@string/confirm_password"
-            android:textColorHint="@color/accent"
             app:boxCornerRadiusTopStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
@@ -422,6 +470,7 @@
             app:endIconMode="password_toggle"
             app:endIconTint="@color/accent"
             app:hintTextColor="@color/accent"
+            android:textColorHint="@color/accent"
             app:startIconDrawable="@drawable/ic_lock"
             app:startIconTint="@color/accent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -443,17 +492,21 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_register"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="55dp"
             android:layout_marginStart="24dp"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="32dp"
             android:layout_marginEnd="24dp"
             android:text="@string/sign_up"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             app:backgroundTint="@color/primary_light"
-            app:cornerRadius="25dp"
+            app:cornerRadius="28dp"
+            app:icon="@drawable/ic_person_add"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconTint="@color/white"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/confirm_password_input_layout"
@@ -465,7 +518,7 @@
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_marginStart="24dp"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="32dp"
             android:layout_marginEnd="24dp"
             android:background="@color/secondary"
             app:layout_constraintEnd_toEndOf="parent"
@@ -479,11 +532,11 @@
             android:layout_height="wrap_content"
             android:text="@string/already_have_account"
             android:textColor="@color/accent"
-            android:textSize="13sp"
+            android:textSize="14sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/divider"
-            android:layout_marginTop="20dp" />
+            android:layout_marginTop="24dp" />
 
         <!-- Login Button -->
         <TextView
@@ -492,13 +545,13 @@
             android:layout_height="wrap_content"
             android:text="@string/sign_in"
             android:textColor="@color/primary_light"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tv_login_prompt"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:layout_marginBottom="32dp" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

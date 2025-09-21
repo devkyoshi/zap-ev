@@ -22,7 +22,6 @@ public class RegisterActivity extends AppCompatActivity {
     private TextInputEditText etFirstName, etLastName, etNic, etEmail, etPhone, etPassword, etConfirmPassword;
     private MaterialButton btnRegister;
     private TextView tvLogin, tvEvOwner, tvStationOperator;
-
     private CardView cardEvOwner, cardStationOperator;
     private NestedScrollView scrollView;
     private String selectedRole = "EV_OWNER"; // Default role
@@ -103,8 +102,8 @@ public class RegisterActivity extends AppCompatActivity {
             cardStationOperator.setCardElevation(2f);
         } else {
 
-            tvEvOwner.setTextColor(getColor(R.color.accent));
-            tvStationOperator.setTextColor(getColor(R.color.white));
+           tvEvOwner.setTextColor(getColor(R.color.accent));
+           tvStationOperator.setTextColor(getColor(R.color.white));
 
 
             cardStationOperator.setCardBackgroundColor(getColor(R.color.accent));

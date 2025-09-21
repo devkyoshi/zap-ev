@@ -9,9 +9,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+// import com.ead.zap.MainActivity;
+
 
 import com.ead.zap.MainActivity;
 import com.ead.zap.R;
+import com.ead.zap.ui.owner.EVOwnerMain;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -75,7 +78,7 @@ public class LoginActivity extends AppCompatActivity {
         Toast.makeText(this, "Login clicked with email: " + email, Toast.LENGTH_SHORT).show();
 
         // Navigate to main activity
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        Intent intent = new Intent(LoginActivity.this, EVOwnerMain.class);
         startActivity(intent);
         finish();
     }

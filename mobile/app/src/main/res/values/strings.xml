@@ -34,7 +34,7 @@
     <string name="first_name">First Name</string>
     <string name="station_operator">Station Operator</string>
     <string name="ev_owner">EV Owner</string>
-    <string name="select_role">Select Role</string>
+    <string name="select_role">Who you are?</string>
     <string name="register_desc">Register with our system</string>
     <string name="create_account">Create Account</string>
 
@@ -61,6 +61,13 @@
     <string name="map">Map</string>
     <string name="station_operator_icon">Station Operator Icon</string>
     <string name="ev_owner_icon">EV Owner Icon</string>
+    <string name="personal_information">Personal Information</string>
+    <string name="security"><![CDATA[Password & Security]]></string>
+    <string name="contact_details">Contact Details</string>
+    <string name="title_home">Home</string>
+    <string name="title_bookings">Bookings</string>
+    <string name="title_map">Map</string>
+    <string name="title_profile">Profile</string>
 
 
 </resources>
