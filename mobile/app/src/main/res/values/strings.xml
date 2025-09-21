@@ -68,6 +68,18 @@
     <string name="title_bookings">Bookings</string>
     <string name="title_map">Map</string>
     <string name="title_profile">Profile</string>
+    <string name="ev_station_banner">EV Station Banner</string>
+    <string name="upcoming_bookings">Upcoming Bookings</string>
+    <string name="confirmed">Confirmed</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="start_charging">Start Charging</string>
+    <string name="charging_history">Charging History</string>
+    <string name="pending_reservations">Pending Reservations</string>
+    <string name="pending">Pending</string>
+    <string name="view_past_sessions_sub_heading">View past sessions</string>
+    <string name="nearby_stations_sub_heading">Find available stations</string>
+    <string name="quick_access_subheading">Quick access to frequently used features</string>
+    <string name="change_password">Change Password</string>
 
 
 </resources>
