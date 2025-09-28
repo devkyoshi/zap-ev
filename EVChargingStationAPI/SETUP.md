@@ -26,21 +26,24 @@ Install-Package Swashbuckle.AspNetCore
 Install-Package QRCoder
 Install-Package DotNetEnv
 
-Create a .env file (example)
+## Environment Variables Setup
 
-Create a file named .env in the project root (same folder as the .csproj and Program.cs).
+Create a `.env` file in the project root with the following keys:
 
-Use the double-underscore (__) convention to map hierarchical configuration keys to 
-ASP.NET Core configuration (this maps to Configuration.GetSection(...)). Example .env:
-# .env (DO NOT COMMIT)
-ConnectionStrings__MongoDB=MongodbConnectionStringHere
-JWT__SecretKey=(put a long random string / base64 here)
-JWT__Issuer=Issuer
-JWT__Audience=Audience
-JWT__ExpirationMinutes=TimeInMinutes
-# optional: override Kestrel urls for local testing
-ASPNETCORE_URLS=https://localhost:5001;http://localhost:5000
+```dotenv
+ConnectionStrings__MongoDB=your-mongo-connection-string
+JWT__SecretKey=your-secret-key
+JWT__Issuer=your-issuer
+JWT__Audience=your-audience
+JWT__ExpirationMinutes=30
+JWT__ExpirationDays=7
+ASPNETCORE_URLS=http://localhost:5000;https://localhost:5001
 ASPNETCORE_ENVIRONMENT=Development
+Frontend__Origin=https://your-frontend-domain.com
+
+# Rate limiting
+RateLimiting__WindowMinutes=1
+RateLimiting__PermitLimit=100
 
 ▶️ Running the Application
 
@@ -74,9 +77,15 @@ POST /api/auth/login
 
 POST /api/auth/login/evowner
 
+POST /api/Auth/refresh
+
+POST /api/Auth/logout
+
 👥 Users
 
-GET/POST/PUT/DELETE /api/users
+POST /api/users/register
+
+GET/PUT/DELETE /api/users
 
 PATCH /api/users/{id}/status
 
