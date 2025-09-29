@@ -9,10 +9,11 @@
  *              using refresh tokens stored in HTTP-only cookies
  */
 
-using System.IdentityModel.Tokens.Jwt;
-using EVChargingStationAPI.Services;
 using EVChargingStationAPI.Models.DTOs;
+using EVChargingStationAPI.Services;
 using Microsoft.AspNetCore.Http;
+using Sprache;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace EVChargingStationAPI.Middleware
 {
@@ -77,8 +78,7 @@ namespace EVChargingStationAPI.Middleware
         /// <returns>The JWT token string or null if not found</returns>
         private string? ExtractTokenFromHeader(HttpContext context)
         {
-            var authHeader = context.Request.Headers["Authorization"].ToString();
-            return authHeader.StartsWith("Bearer ") ? authHeader.Replace("Bearer ", "") : null;
+            return context.Request.Cookies["accessToken"];
         }
 
         /// <summary>
@@ -134,10 +134,7 @@ namespace EVChargingStationAPI.Middleware
             if (refreshResult.Success && refreshResult.Data != null)
             {
                 // Set the new refresh token as an HTTP-only cookie
-                SetRefreshTokenCookie(context, refreshResult.Data.RefreshToken, refreshResult.Data.RefreshTokenExpiresAt);
-
-                // Send the new access token back to the client via response header
-                context.Response.Headers.Add("X-New-Access-Token", refreshResult.Data.AccessToken);
+                SetTokenCookie(context, refreshResult.Data.RefreshToken, refreshResult.Data.AccessToken, refreshResult.Data.RefreshTokenExpiresAt, refreshResult.Data.AccessTokenExpiresAt);
             }
         }
 
@@ -146,18 +143,28 @@ namespace EVChargingStationAPI.Middleware
         /// </summary>
         /// <param name="context">The HTTP context</param>
         /// <param name="refreshToken">The refresh token to store</param>
-        /// <param name="expiresAt">When the refresh token expires</param>
-        private void SetRefreshTokenCookie(HttpContext context, string refreshToken, DateTime expiresAt)
+        /// <param name="accessToken">The access token to store</param>
+        /// <param name="refreshExpiresAt">When the refresh token expires</param>
+        /// <param name="accessExpiresAt">When the access token expires</param>
+        private void SetTokenCookie(HttpContext context, string refreshToken, string accessToken, DateTime refreshExpiresAt, DateTime accessExpiresAt)
         {
-            var cookieOptions = new CookieOptions
+            context.Response.Cookies.Append("accessToken", accessToken, new CookieOptions
             {
-                HttpOnly = true,           // Cannot be accessed by JavaScript (XSS protection)
-                Secure = true,             // Only send over HTTPS
-                SameSite = SameSiteMode.Strict,  // CSRF protection
-                Expires = expiresAt        // Set cookie expiration to match token expiration
-            };
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None, // required for cross-site
+                Expires = accessExpiresAt,
+                Path = "/api"
+            });
 
-            context.Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+            context.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = refreshExpiresAt,
+                Path = "/api/auth/refresh"
+            });
         }
     }
 }

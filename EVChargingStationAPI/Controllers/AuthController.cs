@@ -51,18 +51,26 @@ namespace EVChargingStationAPI.Controllers
 
                 if (result.Success)
                 {
-                    // Set refresh token as HTTP-only cookie
-                    var cookieOptions = new CookieOptions
+                    // Set new token as HTTP-only cookie
+                    Response.Cookies.Append("accessToken", result.Data.AccessToken, new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = true, // Only send over HTTPS
-                        SameSite = SameSiteMode.Strict,
-                        Expires = result.Data.RefreshTokenExpiresAt
-                    };
+                        Secure = false,
+                        SameSite = SameSiteMode.None, // required for cross-site
+                        Expires = result.Data.AccessTokenExpiresAt,
+                        Path = "/api"
+                    });
 
-                    Response.Cookies.Append("refreshToken", result.Data.RefreshToken, cookieOptions);
+                    Response.Cookies.Append("refreshToken", result.Data.RefreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Expires = result.Data.RefreshTokenExpiresAt,
+                        Path = "/api/auth/refresh"
+                    });
 
-                    // Remove refresh token from response body for security
+                    // Remove token from response body
                     result.Data.RefreshToken = string.Empty;
 
                     return Ok(result);
@@ -102,18 +110,26 @@ namespace EVChargingStationAPI.Controllers
 
                 if (result.Success)
                 {
-                    // Set refresh token as HTTP-only cookie
-                    var cookieOptions = new CookieOptions
+                    // Set new token as HTTP-only cookie
+                    Response.Cookies.Append("accessToken", result.Data.AccessToken, new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = true, // Only send over HTTPS
-                        SameSite = SameSiteMode.Strict,
-                        Expires = result.Data.RefreshTokenExpiresAt
-                    };
+                        Secure = true,
+                        SameSite = SameSiteMode.None, // required for cross-site
+                        Expires = result.Data.AccessTokenExpiresAt,
+                        Path = "/api"
+                    });
 
-                    Response.Cookies.Append("refreshToken", result.Data.RefreshToken, cookieOptions);
+                    Response.Cookies.Append("refreshToken", result.Data.RefreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Expires = result.Data.RefreshTokenExpiresAt,
+                        Path = "/api/auth/refresh"
+                    });
 
-                    // Remove refresh token from response body for security
+                    // Remove token from response body
                     result.Data.RefreshToken = string.Empty;
 
                     return Ok(result);
@@ -169,18 +185,26 @@ namespace EVChargingStationAPI.Controllers
                 var result = await _authService.RefreshTokenAsync(refreshTokenRequest);
                 if (result.Success)
                 {
-                    // Set new refresh token as HTTP-only cookie
-                    var cookieOptions = new CookieOptions
+                    // Set new token as HTTP-only cookie
+                    Response.Cookies.Append("accessToken", result.Data.AccessToken, new CookieOptions
                     {
                         HttpOnly = true,
                         Secure = true,
-                        SameSite = SameSiteMode.Strict,
-                        Expires = result.Data.RefreshTokenExpiresAt
-                    };
+                        SameSite = SameSiteMode.None, // required for cross-site
+                        Expires = result.Data.AccessTokenExpiresAt,
+                        Path = "/api"
+                    });
 
-                    Response.Cookies.Append("refreshToken", result.Data.RefreshToken, cookieOptions);
+                    Response.Cookies.Append("refreshToken", result.Data.RefreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Expires = result.Data.RefreshTokenExpiresAt,
+                        Path = "/api/auth/refresh"
+                    });
 
-                    // Remove refresh token from response body
+                    // Remove token from response body
                     result.Data.RefreshToken = string.Empty;
 
                     return Ok(result);
@@ -216,6 +240,7 @@ namespace EVChargingStationAPI.Controllers
                     });
                 }
 
+                var accessToken = Request.Cookies["accessToken"];
                 var refreshToken = Request.Cookies["refreshToken"];
 
                 if (!string.IsNullOrEmpty(refreshToken))
@@ -228,7 +253,13 @@ namespace EVChargingStationAPI.Controllers
                     await _authService.LogoutAsync(logoutRequest);
                 }
 
-                // Clear the refresh token cookie
+                // Clear the token cookie
+                Response.Cookies.Delete("accessToken", new CookieOptions
+                {
+                    Path = "/api",  // must match the Path of the cookie
+                    HttpOnly = true,
+                    Secure = true
+                });
                 Response.Cookies.Delete("refreshToken");
 
                 return Ok(new ApiResponseDTO<object>

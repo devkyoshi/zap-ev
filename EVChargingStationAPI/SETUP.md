@@ -35,11 +35,12 @@ ConnectionStrings__MongoDB=your-mongo-connection-string
 JWT__SecretKey=your-secret-key
 JWT__Issuer=your-issuer
 JWT__Audience=your-audience
-JWT__ExpirationMinutes=30
+JWT__ExpirationMinutes=15
 JWT__ExpirationDays=7
 ASPNETCORE_URLS=http://localhost:5000;https://localhost:5001
 ASPNETCORE_ENVIRONMENT=Development
 Frontend__Origin=https://your-frontend-domain.com
+```
 
 # Rate limiting
 RateLimiting__WindowMinutes=1
