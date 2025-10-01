@@ -17,14 +17,28 @@ public class EVOwnerMain extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_owner_main);
+        try {
+            setContentView(R.layout.activity_owner_main);
 
-        BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
-        bottomNavigationView.setOnNavigationItemSelectedListener(navListener);
+            BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+            if (bottomNavigationView != null) {
+                bottomNavigationView.setOnNavigationItemSelectedListener(navListener);
+            }
 
-        // Load the default fragment
-        if (savedInstanceState == null) {
-            loadFragment(new OwnerHomeFragment());
+            // Load the default fragment or specified fragment
+            if (savedInstanceState == null) {
+                // Check if we should open the bookings tab directly
+                if (getIntent().getBooleanExtra("open_bookings_tab", false)) {
+                    loadFragment(new OwnerBookingsFragment());
+                    bottomNavigationView.setSelectedItemId(R.id.navigation_bookings);
+                } else {
+                    loadFragment(new OwnerHomeFragment());
+                }
+            }
+        } catch (Exception e) {
+            // Handle any potential crashes during initialization
+            e.printStackTrace();
+            finish();
         }
     }
 
@@ -51,8 +65,14 @@ public class EVOwnerMain extends AppCompatActivity {
             };
 
     private void loadFragment(Fragment fragment) {
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.fragment_container, fragment);
-        transaction.commit();
+        try {
+            if (fragment != null && !isFinishing()) {
+                FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+                transaction.replace(R.id.fragment_container, fragment);
+                transaction.commitAllowingStateLoss(); // Use this to prevent IllegalStateException
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

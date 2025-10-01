@@ -200,6 +200,35 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         // Perform registration logic here
-        Toast.makeText(this, "Registering as " + selectedRole, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Registration successful!", Toast.LENGTH_SHORT).show();
+
+        // Navigate based on role
+        navigateToMainActivity();
+    }
+
+    private void navigateToMainActivity() {
+        try {
+            Intent intent;
+            
+            if (selectedRole.equals("EV_OWNER")) {
+                // Navigate to EV Owner main activity
+                intent = new Intent(RegisterActivity.this, com.ead.zap.ui.owner.EVOwnerMain.class);
+            } else {
+                // For Station Operator, navigate to a different activity if available
+                // For now, navigate to EV Owner main as well
+                intent = new Intent(RegisterActivity.this, com.ead.zap.ui.owner.EVOwnerMain.class);
+            }
+            
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        } catch (Exception e) {
+            // Fallback to login activity if there's an issue
+            Toast.makeText(this, "Registration completed. Please login to continue.", Toast.LENGTH_LONG).show();
+            Intent fallbackIntent = new Intent(RegisterActivity.this, LoginActivity.class);
+            fallbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(fallbackIntent);
+            finish();
+        }
     }
 }

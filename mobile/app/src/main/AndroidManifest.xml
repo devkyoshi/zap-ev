@@ -40,6 +40,38 @@
             android:name=".ui.auth.RegisterActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize|stateHidden" />
+
+        <!-- EV Owner Activities -->
+        <activity
+            android:name=".ui.owner.modals.CreateBookingActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.owner.EVOwnerMain" />
+
+        <activity
+            android:name=".ui.owner.modals.BookingSummaryActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.owner.modals.CreateBookingActivity" />
+
+        <activity
+            android:name=".ui.owner.modals.ModifyReservationActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.owner.EVOwnerMain" />
+
+        <activity
+            android:name=".ui.owner.modals.CancelReservationActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.owner.EVOwnerMain" />
+
+        <activity
+            android:name=".ui.owner.modals.QRCodeActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.owner.EVOwnerMain" />
+
+        <activity
+            android:name=".ui.owner.ReactivationInfoActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.auth.LoginActivity" />
+
     </application>
 
 </manifest>
