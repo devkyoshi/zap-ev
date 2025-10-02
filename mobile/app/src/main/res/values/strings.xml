@@ -81,5 +81,26 @@
     <string name="quick_access_subheading">Quick access to frequently used features</string>
     <string name="change_password">Change Password</string>
 
+    <!-- Station Operator Screens -->
+    <string name="qr_scanner">QR Scanner</string>
+    <string name="history">History</string>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="booking_verification">Booking Verification</string>
+    <string name="start_charging_session">Start Charging Session</string>
+    <string name="reject_booking">Reject Booking</string>
+    <string name="finalize_session">Finalize Session</string>
+    <string name="session_history">Session History</string>
+    <string name="active_charging_session">Active Charging Session</string>
+    <string name="charging_in_progress">Charging in Progress</string>
+    <string name="welcome_station_operator">Welcome, Station Operator!</string>
+    <string name="qr_scanner_instructions">Scan customer QR codes to verify bookings and manage charging sessions</string>
+    <string name="station_status">Station Status</string>
+    <string name="active_sessions">Active Sessions</string>
+    <string name="available_slots">Available Slots</string>
+    <string name="charging_progress">Charging Progress</string>
+    <string name="energy_delivered">Energy Delivered</string>
+    <string name="session_details">Session Details</string>
+    <string name="booking_details">Booking Details</string>
+    <string name="complete_session">Complete Session</string>
 
 </resources>

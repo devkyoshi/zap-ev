@@ -129,10 +129,13 @@ public class QRCodeActivity extends AppCompatActivity {
                 "  \"bookingId\": \"" + booking.getBookingId() + "\",\n" +
                 "  \"userId\": \"" + booking.getUserId() + "\",\n" +
                 "  \"stationId\": \"" + booking.getStationId() + "\",\n" +
+                "  \"stationName\": \"" + booking.getStationName() + "\",\n" +
                 "  \"date\": \"" + dateFormat.format(booking.getReservationDate()) + "\",\n" +
                 "  \"time\": \"" + timeFormat.format(booking.getReservationTime()) + "\",\n" +
                 "  \"duration\": " + booking.getDuration() + ",\n" +
                 "  \"status\": \"" + booking.getStatus() + "\",\n" +
+                "  \"customerName\": \"" + (booking.getUserId() != null ? booking.getUserId() : "Customer") + "\",\n" +
+                "  \"totalCost\": " + booking.getTotalCost() + ",\n" +
                 "  \"timestamp\": " + System.currentTimeMillis() + "\n" +
                 "}";
     }

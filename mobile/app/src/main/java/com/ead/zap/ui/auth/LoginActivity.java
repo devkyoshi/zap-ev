@@ -74,11 +74,22 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Perform login logic here (e.g., API call)
-        Toast.makeText(this, "Login clicked with email: " + email, Toast.LENGTH_SHORT).show();
+        // Mock authentication logic
+        Intent intent;
+        if (email.equals("stationoperator@mail.com")) {
+            // Navigate to Station Operator main activity
+            intent = new Intent(LoginActivity.this, com.ead.zap.ui.operator.StationOperatorMain.class);
+            Toast.makeText(this, "Welcome Station Operator!", Toast.LENGTH_SHORT).show();
+        } else if (email.equals("evowner@mail.com")) {
+            // Navigate to EV Owner main activity
+            intent = new Intent(LoginActivity.this, EVOwnerMain.class);
+            Toast.makeText(this, "Welcome EV Owner!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Invalid credentials. Use stationoperator@mail.com or evowner@mail.com", Toast.LENGTH_LONG).show();
+            return;
+        }
 
-        // Navigate to main activity
-        Intent intent = new Intent(LoginActivity.this, EVOwnerMain.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
