@@ -28,7 +28,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginBottom="80dp"
+
         android:fillViewport="true">
 
         <LinearLayout
@@ -49,8 +49,8 @@
                 android:layout_marginBottom="8dp">
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:src="@drawable/ic_bookmark_check"
                     android:layout_marginEnd="12dp"
                     app:tint="@color/primary_light" />
@@ -60,7 +60,7 @@
                     android:layout_height="wrap_content"
                     android:text="Booking Confirmed!"
                     android:textColor="@color/primary_dark"
-                    android:textSize="24sp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
             </LinearLayout>
@@ -71,7 +71,7 @@
                 android:layout_height="wrap_content"
                 android:text="Great! Your booking has been approved. Show this QR code to the station operator when you arrive for charging."
                 android:textColor="@color/accent"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:layout_marginBottom="32dp"
                  />
 
@@ -81,7 +81,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="6dp"
+
+                android:backgroundTint="@color/white"
                 app:strokeColor="@color/primary_light"
                 app:strokeWidth="2dp">
 
@@ -90,6 +91,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="24dp"
+
                     android:gravity="center">
 
                     <TextView
@@ -154,8 +156,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:strokeColor="@color/secondary"
+
+                android:backgroundTint="@color/white"
+                app:strokeColor="@color/primary_light"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -307,7 +310,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
+                android:backgroundTint="@color/white"
                 app:strokeColor="@color/amber_600"
                 app:strokeWidth="1dp">
 

@@ -68,8 +68,9 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:strokeColor="@color/amber_600"
+                android:background="@color/white"
+                android:backgroundTint="@color/white"
+                app:strokeColor="@color/accent"
                 app:strokeWidth="2dp">
 
                 <LinearLayout
@@ -112,10 +113,11 @@
                 android:layout_width="0dp"
                 android:layout_height="100dp"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:strokeColor="@color/primary_light"
+                android:background="@color/white"
+                android:backgroundTint="@color/white"
+                app:strokeColor="@color/accent"
                 app:strokeWidth="2dp">
 
                 <LinearLayout
