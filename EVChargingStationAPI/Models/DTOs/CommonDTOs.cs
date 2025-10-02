@@ -34,6 +34,6 @@ namespace EVChargingStationAPI.Models.DTOs
         public int PendingReservations { get; set; }
         public int ApprovedFutureReservations { get; set; }
         public int TotalActiveStations { get; set; }
-        //public List<ChargingStation> NearbyStations { get; set; } = new();
+        public List<ChargingStation> NearbyStations { get; set; } = new();
     }
 }

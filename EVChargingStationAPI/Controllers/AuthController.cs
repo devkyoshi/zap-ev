@@ -55,7 +55,7 @@ namespace EVChargingStationAPI.Controllers
                     Response.Cookies.Append("accessToken", result.Data.AccessToken, new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = false,
+                        Secure = true,
                         SameSite = SameSiteMode.None, // required for cross-site
                         Expires = result.Data.AccessTokenExpiresAt,
                         Path = "/api"

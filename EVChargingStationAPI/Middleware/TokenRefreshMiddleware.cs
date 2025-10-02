@@ -43,7 +43,7 @@ namespace EVChargingStationAPI.Middleware
         public async Task InvokeAsync(HttpContext context)
         {
             // Extract the JWT token from the Authorization header
-            var token = ExtractTokenFromHeader(context);
+            var token = ExtractTokenFromCookie(context);
 
             if (!string.IsNullOrEmpty(token))
             {
@@ -76,7 +76,7 @@ namespace EVChargingStationAPI.Middleware
         /// </summary>
         /// <param name="context">The HTTP context</param>
         /// <returns>The JWT token string or null if not found</returns>
-        private string? ExtractTokenFromHeader(HttpContext context)
+        private string? ExtractTokenFromCookie(HttpContext context)
         {
             return context.Request.Cookies["accessToken"];
         }

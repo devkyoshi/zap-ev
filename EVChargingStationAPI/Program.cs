@@ -43,9 +43,9 @@ builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
 // Add services to the container
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEVOwnerService, EVOwnerService>();
-//builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
-//builder.Services.AddScoped<IBookingService, BookingService>();
-//builder.Services.AddScoped<IQRService, QRService>();
+builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IQRService, QRService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Add JWT authentication
@@ -79,7 +79,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddControllers();
+// Always enforce validation filter
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+})
+.ConfigureApiBehaviorOptions(options =>
+{
+    // Disable automatic 400 response
+    options.SuppressModelStateInvalidFilter = true;
+})
+.AddJsonOptions(opt => opt.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -183,6 +194,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseGlobalExceptionHandler(); // safe wrapper
+}
+
 
 app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");

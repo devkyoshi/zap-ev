@@ -122,7 +122,7 @@ namespace EVChargingStationAPI.Services
                 var update = Builders<EVOwner>.Update.Set(e => e.LastLogin, DateTime.UtcNow);
                 await _evOwners.UpdateOneAsync(e => e.Id == evOwner.Id, update);
 
-                var accessToken = GenerateJwtToken(evOwner.Id, "EVOwner", "EVOwner");
+                var accessToken = GenerateJwtToken(evOwner.Id, "EVOwner", "EVOwner", evOwner.NIC);
                 var refreshToken = Guid.NewGuid().ToString();
                 var accessTokenExpiry = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["JWT:ExpirationMinutes"]));
                 var refreshTokenExpiry = DateTime.UtcNow.AddDays(int.Parse(_configuration["JWT:ExpirationDays"]));
@@ -184,6 +184,7 @@ namespace EVChargingStationAPI.Services
                 }
 
                 string role;
+                string newAccessToken = string.Empty;
                 if (session.UserType == "User")
                 {
                     var user = await _users.Find(u => u.Id == session.UserId).FirstOrDefaultAsync();
@@ -198,6 +199,7 @@ namespace EVChargingStationAPI.Services
                         };
                     }
                     role = user.Role.ToString();
+                    newAccessToken = GenerateJwtToken(session.UserId, session.UserType, role);
                 }
                 else
                 {
@@ -213,9 +215,9 @@ namespace EVChargingStationAPI.Services
                         };
                     }
                     role = "EVOwner";
+                    newAccessToken = GenerateJwtToken(session.UserId, session.UserType, role, evOwner.NIC);
                 }
 
-                var newAccessToken = GenerateJwtToken(session.UserId, session.UserType, role);
                 var newRefreshToken = Guid.NewGuid().ToString();
                 var accessTokenExpiry = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["JWT:ExpirationMinutes"]));
                 var refreshTokenExpiry = DateTime.UtcNow.AddDays(int.Parse(_configuration["JWT:ExpirationDays"]));
@@ -291,19 +293,25 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Generates JWT token for authenticated users
         /// </summary>
-        public string GenerateJwtToken(string userId, string userType, string role)
+        public string GenerateJwtToken(string userId, string userType, string role, string? nic = null)
         {
             var jwtSettings = _configuration.GetSection("JWT");
             var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Role, role),
-                new Claim("UserType", userType),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+                new(ClaimTypes.NameIdentifier, userId),
+                new(ClaimTypes.Role, role),
+                new("UserType", userType),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
+
+            // Add NIC claim only if provided
+            if (!string.IsNullOrEmpty(nic))
+            {
+                claims.Add(new Claim("NIC", nic));
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

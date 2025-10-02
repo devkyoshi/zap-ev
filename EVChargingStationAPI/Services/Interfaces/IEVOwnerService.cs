@@ -24,6 +24,6 @@ namespace EVChargingStationAPI.Services
         Task<ApiResponseDTO<bool>> ActivateDeactivateEVOwnerAsync(string id, bool isActive);
         Task<ApiResponseDTO<List<EVOwner>>> GetDeactivatedEVOwnersAsync();
         Task<ApiResponseDTO<bool>> ReactivateEVOwnerAsync(string id);
-        //Task<ApiResponseDTO<DashboardStatsDTO>> GetEVOwnerDashboardStatsAsync(string evOwnerNIC);
+        Task<ApiResponseDTO<DashboardStatsDTO>> GetEVOwnerDashboardStatsAsync(string evOwnerNIC, NearbyStationsRequestDTO? locationRequest = null);
     }
 }

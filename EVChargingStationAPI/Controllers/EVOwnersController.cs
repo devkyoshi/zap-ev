@@ -292,24 +292,24 @@ namespace EVChargingStationAPI.Controllers
         /// <summary>
         /// Gets dashboard statistics for an EV owner
         /// </summary>
-        //[HttpGet("dashboard/{nic}")]
-        //[Authorize(Roles = "EVOwner")]
-        //public async Task<IActionResult> GetDashboardStats(string nic)
-        //{
-        //    try
-        //    {
-        //        var result = await _evOwnerService.GetEVOwnerDashboardStatsAsync(nic);
-        //        return Ok(result);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new ApiResponseDTO<object>
-        //        {
-        //            Success = false,
-        //            Message = "An internal error occurred"
-        //        });
-        //    }
-        //}
+        [HttpPost("dashboard/{nic}")]
+        [Authorize(Roles = "EVOwner")]
+        public async Task<IActionResult> GetDashboardStats(string nic, [FromBody] NearbyStationsRequestDTO? locationRequest = null)
+        {
+            try
+            {
+                var result = await _evOwnerService.GetEVOwnerDashboardStatsAsync(nic, locationRequest);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
 
         /// <summary>
         /// Deletes an EV owner (BackOffice only)
