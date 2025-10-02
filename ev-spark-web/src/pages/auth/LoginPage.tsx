@@ -1,16 +1,16 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { 
-  Card, 
-  CardContent, 
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Card,
+  CardContent,
   CardDescription,
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -18,17 +18,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { loginSchema } from "@/lib/validation/auth"
-import type { LoginFormValues } from "@/lib/validation/auth"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { loginSchema } from "@/lib/validation/auth";
+import type { LoginFormValues } from "@/lib/validation/auth";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const LoginPage = () => {
-  const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -37,37 +37,71 @@ const LoginPage = () => {
       role: "owner",
       rememberMe: false,
     },
-  })
-
+  });
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      setIsLoading(true)
-      console.log("Login data:", data)
-      // TODO: Implement actual login logic with API
-      
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      
+      setIsLoading(true);
+
+      // Prepare login data with username instead of email
+      const loginData = {
+        username: data.email, // Using the email field as username
+        password: data.password,
+      };
+
+      console.log("Login data:", loginData);
+
+      // Add mode: 'cors' and handle preflight
+      const response = await fetch("/api/Auth/login", {
+        method: "POST",
+        mode: "cors", // Explicitly set CORS mode
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Login failed");
+      }
+
+      const result = await response.json();
+      console.log("Login successful:", result);
+
+      // Store token if returned
+      if (result.token) {
+        localStorage.setItem("authToken", result.token);
+        // Also store user role if needed
+        localStorage.setItem("userRole", data.role);
+      }
+
       // Role-based redirection
       switch (data.role) {
         case "admin":
-          navigate("/admin/dashboard")
-          break
+          navigate("/admin/dashboard");
+          break;
         case "operator":
-          navigate("/operator/stations")
-          break
+          navigate("/operator/stations");
+          break;
         case "owner":
-          navigate("/owner/dashboard")
-          break
+          navigate("/owner/dashboard");
+          break;
         default:
-          navigate("/")
+          navigate("/");
       }
     } catch (error) {
-      console.error("Login failed:", error)
+      console.error("Login failed:", error);
+      // You can add error handling UI here
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Login failed. Please try again."
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Card>
@@ -85,15 +119,15 @@ const LoginPage = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" {...field} />
+                    <Input placeholder="Username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="password"
@@ -102,10 +136,10 @@ const LoginPage = () => {
                   <FormLabel>Password</FormLabel>
                   <div className="relative">
                     <FormControl>
-                      <Input 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="••••••••" 
-                        {...field} 
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        {...field}
                       />
                     </FormControl>
                     <Button
@@ -122,7 +156,7 @@ const LoginPage = () => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="role"
@@ -141,7 +175,7 @@ const LoginPage = () => {
                 </FormItem>
               )}
             />
-            
+
             <div className="flex items-center justify-between">
               <FormField
                 control={form.control}
@@ -164,7 +198,7 @@ const LoginPage = () => {
                   </div>
                 )}
               />
-              
+
               <Link
                 to="/auth/forgot-password"
                 className="text-sm font-medium text-primary hover:underline"
@@ -172,7 +206,7 @@ const LoginPage = () => {
                 Forgot password?
               </Link>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -198,7 +232,7 @@ const LoginPage = () => {
         </p>
       </CardFooter>
     </Card>
-  )
-}
+  );
+};
 
-export default LoginPage
+export default LoginPage;
