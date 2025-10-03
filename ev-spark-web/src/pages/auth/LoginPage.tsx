@@ -23,6 +23,9 @@ import { Input } from "@/components/ui/input";
 import { loginSchema } from "@/lib/validation/auth";
 import type { LoginFormValues } from "@/lib/validation/auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import axios from "axios";
+import type { JwtPayload } from "@/services/auth-service";
+import { jwtDecode } from "jwt-decode";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -38,65 +41,58 @@ const LoginPage = () => {
       rememberMe: false,
     },
   });
+
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setIsLoading(true);
 
-      // Prepare login data with username instead of email
       const loginData = {
-        username: data.email, // Using the email field as username
+        username: data.email,
         password: data.password,
       };
 
-      console.log("Login data:", loginData);
-
-      // Add mode: 'cors' and handle preflight
-      const response = await fetch("/api/Auth/login", {
-        method: "POST",
-        mode: "cors", // Explicitly set CORS mode
+      const response = await axios.post("/api/Auth/login", loginData, {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(loginData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
-      }
+      const result = response.data;
 
-      const result = await response.json();
-      console.log("Login successful:", result);
+      if (result.success && result.data?.accessToken) {
+        const accessToken = result.data.accessToken;
 
-      // Store token if returned
-      if (result.token) {
-        localStorage.setItem("authToken", result.token);
-        // Also store user role if needed
-        localStorage.setItem("userRole", data.role);
-      }
+        localStorage.setItem("authToken", accessToken);
+        localStorage.setItem("refreshToken", result.data.refreshToken || "");
 
-      // Role-based redirection
-      switch (data.role) {
-        case "admin":
-          navigate("/admin/dashboard");
-          break;
-        case "operator":
-          navigate("/operator/stations");
-          break;
-        case "owner":
-          navigate("/owner/dashboard");
-          break;
-        default:
-          navigate("/");
+        const decodedToken = jwtDecode<JwtPayload>(accessToken);
+        const userRole = decodedToken.role;
+
+        localStorage.setItem("userRole", userRole);
+
+        switch (userRole) {
+          case "BackOffice":
+            navigate("/admin/dashboard");
+            break;
+          case "StationOperator":
+            navigate("/operator/stations");
+            break;
+          case "StationOwner":
+            navigate("/owner/dashboard");
+            break;
+          default:
+            navigate("/");
+        }
+      } else {
+        throw new Error(result.message || "Login failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
-      // You can add error handling UI here
       alert(
-        error instanceof Error
-          ? error.message
-          : "Login failed. Please try again."
+        error.response?.data?.message ||
+          error.message ||
+          "Login failed. Please try again."
       );
     } finally {
       setIsLoading(false);
