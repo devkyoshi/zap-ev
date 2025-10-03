@@ -9,6 +9,9 @@ export interface AuthCredentials {
   rememberMe?: boolean;
 }
 
+export interface JwtPayload {
+  role: string;
+}
 export interface RegisterData {
   nic: string;
   name: string;
