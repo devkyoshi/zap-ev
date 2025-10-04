@@ -18,7 +18,7 @@ using System.Security.Claims;
 namespace EVChargingStationAPI.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/evowners")]
     public class EVOwnersController : ControllerBase
     {
         private readonly IEVOwnerService _evOwnerService;
