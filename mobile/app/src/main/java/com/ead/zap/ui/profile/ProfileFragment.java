@@ -1,22 +1,31 @@
 package com.ead.zap.ui.profile;
 
-import android.app.AlertDialog;
+
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.ead.zap.R;
+import com.ead.zap.adapters.VehicleAdapter;
 import com.ead.zap.models.ProfileResponse;
 import com.ead.zap.models.ProfileUpdateRequest;
+import com.ead.zap.models.VehicleDetail;
 import com.ead.zap.models.auth.AuthResponse;
 import com.ead.zap.services.AuthService;
 import com.ead.zap.services.ProfileService;
@@ -24,19 +33,39 @@ import com.ead.zap.ui.auth.LoginActivity;
 import com.ead.zap.ui.owner.ReactivationInfoActivity;
 import com.ead.zap.utils.PreferenceManager;
 import com.ead.zap.utils.ProfileValidator;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
+
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProfileFragment extends Fragment {
     private static final String TAG = "ProfileFragment";
 
     private TextInputEditText etFirstName, etLastName, etNic, etEmail, etPhone;
-    private Button btnSaveProfile, btnLogout, btnDeleteAccount;
+    private Button btnSaveProfile, btnLogout, btnDeleteAccount, btnAddVehicle;
+    private RecyclerView recyclerViewVehicles;
+    private View emptyVehicleState;
+    private ScrollView scrollView;
     
     private AuthService authService;
     private ProfileService profileService;
     private PreferenceManager preferenceManager;
     
     private ProfileResponse currentProfile;
+    private VehicleAdapter vehicleAdapter;
+    private List<VehicleDetail> vehicleList;
+    
+    // Keyboard handling variables
+    private View rootView;
+    private int originalHeight;
+    private boolean keyboardVisible = false;
+
+
+    private TextView profileName;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -52,12 +81,16 @@ public class ProfileFragment extends Fragment {
         profileService = new ProfileService(requireContext());
         preferenceManager = new PreferenceManager(requireContext());
         
+        rootView = view;
         initViews(view);
+        setupKeyboardHandling();
         setupClickListeners();
+        ensureBottomNavigationAccessible();
         loadUserData();
     }
 
     private void initViews(View view) {
+        scrollView = view.findViewById(R.id.scrollView);
         etFirstName = view.findViewById(R.id.et_first_name);
         etLastName = view.findViewById(R.id.et_last_name);
         etNic = view.findViewById(R.id.et_nic);
@@ -66,15 +99,188 @@ public class ProfileFragment extends Fragment {
         btnSaveProfile = view.findViewById(R.id.btnSaveProfile);
         btnLogout = view.findViewById(R.id.btnLogout);
         btnDeleteAccount = view.findViewById(R.id.btnDeleteAccount);
+        btnAddVehicle = view.findViewById(R.id.btnAddVehicle);
+        recyclerViewVehicles = view.findViewById(R.id.recyclerViewVehicles);
+        emptyVehicleState = view.findViewById(R.id.emptyVehicleState);
+        profileName = view.findViewById(R.id.profileName);
 
         // Make NIC field non-editable as it's the primary key
         etNic.setEnabled(false);
+        
+        // Setup vehicle list
+        setupVehicleList();
     }
 
+    private void setupVehicleList() {
+        vehicleList = new ArrayList<>();
+        vehicleAdapter = new VehicleAdapter(vehicleList, new VehicleAdapter.OnVehicleActionListener() {
+            @Override
+            public void onEditVehicle(VehicleDetail vehicle, int position) {
+                showVehicleDialog(vehicle, position);
+            }
+
+            @Override
+            public void onDeleteVehicle(VehicleDetail vehicle, int position) {
+                showDeleteVehicleDialog(vehicle, position);
+            }
+        });
+        
+        recyclerViewVehicles.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerViewVehicles.setAdapter(vehicleAdapter);
+        recyclerViewVehicles.setNestedScrollingEnabled(false);
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
     private void setupClickListeners() {
-        btnSaveProfile.setOnClickListener(v -> saveProfile());
-        btnLogout.setOnClickListener(v -> logout());
-        btnDeleteAccount.setOnClickListener(v -> showDeactivateAccountDialog());
+        btnSaveProfile.setOnClickListener(v -> {
+            hideKeyboard();
+            saveProfile();
+        });
+        btnLogout.setOnClickListener(v -> {
+            hideKeyboard();
+            logout();
+        });
+        btnDeleteAccount.setOnClickListener(v -> {
+            hideKeyboard();
+            showDeactivateAccountDialog();
+        });
+        btnAddVehicle.setOnClickListener(v -> {
+            hideKeyboard();
+            showVehicleDialog(null, -1);
+        });
+        
+        // Hide keyboard when touching outside input fields
+        if (scrollView != null) {
+            scrollView.setOnTouchListener((v, event) -> {
+                hideKeyboard();
+                return false;
+            });
+        }
+    }
+
+    private void setupKeyboardHandling() {
+        if (rootView != null) {
+            // Track root view height changes to detect keyboard
+            rootView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    int currentHeight = rootView.getHeight();
+                    
+                    if (originalHeight == 0) {
+                        originalHeight = currentHeight;
+                        return;
+                    }
+                    
+                    // Calculate height difference
+                    int heightDifference = originalHeight - currentHeight;
+                    boolean isKeyboardVisible = heightDifference > originalHeight * 0.20; // Threshold for keyboard detection (increased for better detection)
+                    
+                    if (isKeyboardVisible != keyboardVisible) {
+                        keyboardVisible = isKeyboardVisible;
+                        onKeyboardVisibilityChanged(isKeyboardVisible);
+                    }
+                }
+            });
+            
+            // Setup focus listeners for input fields
+            setupInputFieldFocusListeners();
+        }
+    }
+    
+    private void setupInputFieldFocusListeners() {
+        TextInputEditText[] inputFields = {etFirstName, etLastName, etNic, etEmail, etPhone};
+        
+        for (TextInputEditText field : inputFields) {
+            if (field != null) {
+                field.setOnFocusChangeListener((v, hasFocus) -> {
+                    if (hasFocus) {
+                        // Delay scroll to ensure keyboard is fully opened
+                        v.postDelayed(() -> scrollToView(v), 300);
+                    }
+                });
+            }
+        }
+    }
+    
+    private void scrollToView(View view) {
+        if (scrollView != null && view != null && getActivity() != null) {
+            view.post(() -> {
+                // Get screen height and keyboard height approximation
+                int screenHeight = getResources().getDisplayMetrics().heightPixels;
+                int keyboardHeight = screenHeight / 3; // Approximate keyboard height
+                int availableHeight = screenHeight - keyboardHeight;
+                
+                // Calculate position to scroll the focused field into view
+                int[] location = new int[2];
+                view.getLocationOnScreen(location);
+                int viewY = location[1];
+                
+                // Get ScrollView location
+                int[] scrollLocation = new int[2];
+                scrollView.getLocationOnScreen(scrollLocation);
+                int scrollViewY = scrollLocation[1];
+                
+                // Calculate relative position
+                int relativeY = viewY - scrollViewY;
+                
+                // Calculate desired scroll position (field at 1/4 from top of available area)
+                int desiredY = relativeY - (availableHeight / 4);
+                
+                // Ensure we don't scroll past the content
+                int maxScroll = scrollView.getChildAt(0).getHeight() - scrollView.getHeight();
+                int finalScrollY = Math.max(0, Math.min(desiredY, maxScroll));
+                
+                scrollView.smoothScrollTo(0, finalScrollY);
+            });
+        }
+    }
+    
+    private void onKeyboardVisibilityChanged(boolean isVisible) {
+        if (scrollView != null && getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                if (isVisible) {
+                    // Keyboard is open - remove system UI fitting to prevent white space
+                    scrollView.setFitsSystemWindows(false);
+                    
+                    // Ensure content is visible above keyboard
+                    View focusedView = getActivity().getCurrentFocus();
+                    if (focusedView != null) {
+                        scrollToView(focusedView);
+                    }
+                } else {
+                    // Keyboard is closed - restore system UI fitting
+                    scrollView.post(() -> scrollView.setFitsSystemWindows(false));
+                }
+            });
+        }
+    }
+    
+    private void hideKeyboard() {
+        if (getActivity() != null) {
+            View view = getActivity().getCurrentFocus();
+            if (view != null) {
+                InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Ensures bottom navigation remains accessible by limiting scroll range
+     */
+    private void ensureBottomNavigationAccessible() {
+        if (scrollView != null && getActivity() != null) {
+            // Reserve space for bottom navigation (approximately 56dp + 16dp margins)
+            int bottomNavHeight = (int) (72 * getResources().getDisplayMetrics().density);
+            scrollView.setPadding(
+                scrollView.getPaddingLeft(),
+                scrollView.getPaddingTop(),
+                scrollView.getPaddingRight(),
+                Math.max(bottomNavHeight, scrollView.getPaddingBottom())
+            );
+        }
     }
 
     private void loadUserData() {
@@ -126,7 +332,110 @@ public class ProfileFragment extends Fragment {
             etNic.setText(profile.getNic() != null ? profile.getNic() : "");
             etEmail.setText(profile.getEmail() != null ? profile.getEmail() : "");
             etPhone.setText(profile.getPhoneNumber() != null ? profile.getPhoneNumber() : "");
+            profileName.setText(profile.getDisplayName());
+            
+            // Update vehicle list
+            updateVehicleList(profile.getVehicleDetails());
         }
+    }
+
+    private void updateVehicleList(List<VehicleDetail> vehicles) {
+        if (vehicles != null && !vehicles.isEmpty()) {
+            vehicleList.clear();
+            vehicleList.addAll(vehicles);
+            vehicleAdapter.notifyDataSetChanged();
+            
+            recyclerViewVehicles.setVisibility(View.VISIBLE);
+            emptyVehicleState.setVisibility(View.GONE);
+        } else {
+            vehicleList.clear();
+            vehicleAdapter.notifyDataSetChanged();
+            
+            recyclerViewVehicles.setVisibility(View.GONE);
+            emptyVehicleState.setVisibility(View.VISIBLE);
+        }
+    }
+    
+    /**
+     * Updates the visibility of vehicle list based on current vehicle count
+     * Used after individual add/edit/delete operations to avoid double refresh
+     */
+    private void updateVehicleVisibility() {
+        if (vehicleList != null && !vehicleList.isEmpty()) {
+            recyclerViewVehicles.setVisibility(View.VISIBLE);
+            emptyVehicleState.setVisibility(View.GONE);
+        } else {
+            recyclerViewVehicles.setVisibility(View.GONE);
+            emptyVehicleState.setVisibility(View.VISIBLE);
+        }
+    }
+    
+    /**
+     * Saves vehicle changes to backend automatically when vehicles are added/edited/deleted
+     */
+    private void saveVehicleChangesToBackend() {
+        // Validate profile form before saving vehicle changes
+        if (!validateForm()) {
+            Toast.makeText(getContext(), 
+                "Please fix profile information errors before vehicle changes can be saved", 
+                Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        // Get current form values
+        String firstName = etFirstName.getText().toString().trim();
+        String lastName = etLastName.getText().toString().trim();
+        String email = etEmail.getText().toString().trim();
+        String phone = etPhone.getText().toString().trim();
+        String nic = etNic.getText().toString().trim();
+
+        // Get user ID from preferences
+        String userId = preferenceManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Log.e(TAG, "Unable to save vehicle changes: User ID not found");
+            Toast.makeText(getContext(), "Unable to save vehicle changes", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Create update request with current profile data + updated vehicles
+        ProfileUpdateRequest updateRequest = new ProfileUpdateRequest();
+        updateRequest.setNic(nic);
+        updateRequest.setFirstName(firstName);
+        updateRequest.setLastName(lastName);
+        updateRequest.setEmail(email);
+        updateRequest.setPhoneNumber(phone);
+        updateRequest.setVehicleDetails(new ArrayList<>(vehicleList));
+
+        // Show subtle saving indicator
+        Toast.makeText(getContext(), "Saving vehicle changes...", Toast.LENGTH_SHORT).show();
+
+        // Update profile via API
+        profileService.updateUserProfile(userId, updateRequest, new ProfileService.ProfileUpdateCallback() {
+            @Override
+            public void onSuccess(ProfileResponse updatedProfile) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        currentProfile = updatedProfile;
+                        Toast.makeText(getContext(), "Vehicle changes saved!", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, "Vehicle changes saved successfully");
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to save vehicle changes: " + error);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        String errorMessage = "Failed to save vehicle changes";
+                        if (error != null && !error.isEmpty()) {
+                            errorMessage += ": " + error;
+                        }
+                        Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
+                    });
+                }
+            }
+        });
     }
 
     private void showErrorAndLoadFallback() {
@@ -176,10 +485,8 @@ public class ProfileFragment extends Fragment {
         updateRequest.setEmail(email);
         updateRequest.setPhoneNumber(phone);
         
-        // Keep existing vehicle details if available
-        if (currentProfile != null && currentProfile.getVehicleDetails() != null) {
-            updateRequest.setVehicleDetails(currentProfile.getVehicleDetails());
-        }
+        // Include current vehicle details
+        updateRequest.setVehicleDetails(new ArrayList<>(vehicleList));
 
         // Disable save button and show loading state
         btnSaveProfile.setEnabled(false);
@@ -402,5 +709,146 @@ public class ProfileFragment extends Fragment {
         if (currentProfile == null) {
             loadUserData();
         }
+        
+        // Reset keyboard state when resuming
+        keyboardVisible = false;
+        if (scrollView != null) {
+            scrollView.setFitsSystemWindows(false);
+        }
+    }
+    
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Hide keyboard when leaving fragment
+        hideKeyboard();
+    }
+
+    private void showVehicleDialog(VehicleDetail vehicle, int position) {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_vehicle, null);
+        
+        TextInputEditText etMake = dialogView.findViewById(R.id.etVehicleMake);
+        TextInputEditText etModel = dialogView.findViewById(R.id.etVehicleModel);
+        TextInputEditText etLicensePlate = dialogView.findViewById(R.id.etLicensePlate);
+        TextInputEditText etYear = dialogView.findViewById(R.id.etVehicleYear);
+        TextView tvTitle = dialogView.findViewById(R.id.tvDialogTitle);
+        
+        // Pre-populate if editing
+        boolean isEditing = vehicle != null;
+        if (isEditing) {
+            tvTitle.setText("Edit Vehicle");
+            etMake.setText(vehicle.getMake());
+            etModel.setText(vehicle.getModel());
+            etLicensePlate.setText(vehicle.getLicensePlate());
+            etYear.setText(String.valueOf(vehicle.getYear()));
+        } else {
+            tvTitle.setText("Add Vehicle");
+        }
+        
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
+        builder.setView(dialogView);
+        
+        AlertDialog dialog = builder.create();
+        
+        Button btnSave = dialogView.findViewById(R.id.btnSave);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        
+        btnSave.setOnClickListener(v -> {
+            if (validateVehicleForm(etMake, etModel, etLicensePlate, etYear)) {
+                VehicleDetail newVehicle = new VehicleDetail(
+                    etMake.getText().toString().trim(),
+                    etModel.getText().toString().trim(),
+                    etLicensePlate.getText().toString().trim(),
+                    Integer.parseInt(etYear.getText().toString().trim())
+                );
+                
+                if (isEditing) {
+                    vehicleAdapter.updateVehicle(position, newVehicle);
+                } else {
+                    vehicleAdapter.addVehicle(newVehicle);
+                }
+                
+                // Update visibility based on vehicle list size (don't call updateVehicleList as it causes double refresh)
+                updateVehicleVisibility();
+                
+                // Auto-save the profile to sync vehicle changes with backend
+                saveVehicleChangesToBackend();
+                
+                dialog.dismiss();
+            }
+        });
+        
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        
+        dialog.show();
+    }
+
+    private boolean validateVehicleForm(TextInputEditText etMake, TextInputEditText etModel,
+                                       TextInputEditText etLicensePlate, TextInputEditText etYear) {
+        boolean isValid = true;
+        
+        // Clear previous errors
+        etMake.setError(null);
+        etModel.setError(null);
+        etLicensePlate.setError(null);
+        etYear.setError(null);
+        
+        String make = etMake.getText().toString().trim();
+        ProfileValidator.ValidationResult makeResult = ProfileValidator.validateVehicleMake(make);
+        if (makeResult.hasError()) {
+            etMake.setError(makeResult.getErrorMessage());
+            isValid = false;
+        }
+        
+        String model = etModel.getText().toString().trim();
+        ProfileValidator.ValidationResult modelResult = ProfileValidator.validateVehicleModel(model);
+        if (modelResult.hasError()) {
+            etModel.setError(modelResult.getErrorMessage());
+            isValid = false;
+        }
+        
+        String licensePlate = etLicensePlate.getText().toString().trim();
+        ProfileValidator.ValidationResult plateResult = ProfileValidator.validateLicensePlate(licensePlate);
+        if (plateResult.hasError()) {
+            etLicensePlate.setError(plateResult.getErrorMessage());
+            isValid = false;
+        }
+        
+        String yearStr = etYear.getText().toString().trim();
+        if (yearStr.isEmpty()) {
+            etYear.setError("Year is required");
+            isValid = false;
+        } else {
+            try {
+                int year = Integer.parseInt(yearStr);
+                ProfileValidator.ValidationResult yearResult = ProfileValidator.validateVehicleYear(year);
+                if (yearResult.hasError()) {
+                    etYear.setError(yearResult.getErrorMessage());
+                    isValid = false;
+                }
+            } catch (NumberFormatException e) {
+                etYear.setError("Please enter a valid year");
+                isValid = false;
+            }
+        }
+        
+        return isValid;
+    }
+
+    private void showDeleteVehicleDialog(VehicleDetail vehicle, int position) {
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
+        builder.setTitle("Delete Vehicle")
+               .setMessage("Are you sure you want to delete " + vehicle.getVehicleDisplayName() + "?")
+               .setPositiveButton("Delete", (dialog, which) -> {
+                   vehicleAdapter.removeVehicle(position);
+                   // Update visibility based on vehicle list size (don't call updateVehicleList as it causes double refresh)
+                   updateVehicleVisibility();
+                   
+                   // Auto-save the profile to sync vehicle changes with backend
+                   saveVehicleChangesToBackend();
+               })
+               .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+               .setIcon(android.R.drawable.ic_dialog_alert)
+               .show();
     }
 }

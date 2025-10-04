@@ -4,14 +4,14 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
+
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.ead.zap.R;
-import com.ead.zap.adapters.VehicleAdapter;
+import com.ead.zap.adapters.VehicleSelectionAdapter;
 import com.ead.zap.models.Booking;
 import com.ead.zap.models.Vehicle;
 import com.google.android.material.textfield.TextInputEditText;
@@ -19,7 +19,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -31,7 +31,7 @@ public class CreateBookingActivity extends AppCompatActivity {
     private TextView tvSelectedStation, tvStationAddress, tvChargingRate, tvEstimatedCost;
     private Button btnCancel, btnContinue;
     private RecyclerView rvVehicles;
-    private VehicleAdapter vehicleAdapter;
+    private VehicleSelectionAdapter vehicleAdapter;
 
     private Calendar selectedDate = Calendar.getInstance();
     private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
@@ -150,7 +150,7 @@ public class CreateBookingActivity extends AppCompatActivity {
 
     private void setupVehicleList() {
         List<Vehicle> vehicles = getVehicles(); // This would come from database
-        vehicleAdapter = new VehicleAdapter(vehicles);
+        vehicleAdapter = new VehicleSelectionAdapter(vehicles);
         rvVehicles.setLayoutManager(new LinearLayoutManager(this));
         rvVehicles.setAdapter(vehicleAdapter);
     }

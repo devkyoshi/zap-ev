@@ -20,6 +20,7 @@ namespace EVChargingStationAPI.Services
         Task<ApiResponseDTO<EVOwner>> GetEVOwnerByNICAsync(string nic);
         Task<ApiResponseDTO<EVOwner>> GetEVOwnerByIdAsync(string id);
         Task<ApiResponseDTO<EVOwner>> UpdateEVOwnerAsync(string id, EVOwner evOwner);
+        Task<ApiResponseDTO<EVOwner>> UpdateEVOwnerProfileAsync(string id, ProfileUpdateDTO profileUpdateDto);
         Task<ApiResponseDTO<bool>> DeleteEVOwnerAsync(string id);
         Task<ApiResponseDTO<bool>> ActivateDeactivateEVOwnerAsync(string id, bool isActive);
         Task<ApiResponseDTO<List<EVOwner>>> GetDeactivatedEVOwnersAsync();

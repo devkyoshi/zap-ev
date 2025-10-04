@@ -37,7 +37,8 @@
 
         <activity
             android:name=".ui.owner.EVOwnerMain"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize|stateHidden">
         </activity>
 
         <activity

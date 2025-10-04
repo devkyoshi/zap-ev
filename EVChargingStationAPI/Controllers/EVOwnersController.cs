@@ -203,6 +203,53 @@ namespace EVChargingStationAPI.Controllers
         }
 
         /// <summary>
+        /// Updates an EV owner profile (mobile app profile updates)
+        /// </summary>
+        [HttpPut("{id}/profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateEVOwnerProfile(string id, [FromBody] ProfileUpdateDTO profileUpdateDto)
+        {
+            try
+            {
+                // Check if user is updating their own profile or is BackOffice
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (currentUserId != id && userRole != "BackOffice")
+                {
+                    return Forbid();
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "Invalid request data",
+                        Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
+                    });
+                }
+
+                var result = await _evOwnerService.UpdateEVOwnerProfileAsync(id, profileUpdateDto);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
+        /// <summary>
         /// Deactivates an EV owner account (Self-deactivation allowed)
         /// </summary>
         [HttpPatch("{id}/deactivate")]

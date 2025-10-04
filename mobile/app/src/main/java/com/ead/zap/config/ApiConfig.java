@@ -55,7 +55,7 @@ public class ApiConfig {
         public static final String REGISTER = "evowners/register";
         public static final String BASE = "evowners/{id}";
         public static final String PROFILE = "evowners/{id}";
-        public static final String UPDATE_PROFILE = "evowners/{id}";
+        public static final String UPDATE_PROFILE = "evowners/{id}/profile";
         public static final String DEACTIVATED = "evowners/deactivated";
         public static final String REACTIVATE = "evowners/{id}/reactivate";
         public static final String DASHBOARD = "evowners/dashboard/{nic}";
