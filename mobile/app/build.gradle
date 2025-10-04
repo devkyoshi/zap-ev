@@ -41,6 +41,18 @@ dependencies {
     implementation libs.google.material
     implementation libs.zxing.core
     implementation libs.zxing.android.embedded
+    
+    // Networking
+    implementation libs.retrofit
+    implementation libs.retrofit.gson
+    implementation libs.okhttp
+    implementation libs.okhttp.logging
+    implementation libs.gson
+    
+    // Database
+    implementation libs.room.runtime
+    annotationProcessor libs.room.compiler
+    
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

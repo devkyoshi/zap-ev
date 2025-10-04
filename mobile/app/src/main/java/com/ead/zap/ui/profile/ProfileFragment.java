@@ -14,14 +14,20 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.ead.zap.R;
+import com.ead.zap.models.auth.AuthResponse;
+import com.ead.zap.services.AuthService;
 import com.ead.zap.ui.auth.LoginActivity;
 import com.ead.zap.ui.owner.ReactivationInfoActivity;
+import com.ead.zap.utils.PreferenceManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class ProfileFragment extends Fragment {
 
     private TextInputEditText etFirstName, etLastName, etNic, etEmail, etPhone;
     private Button btnSaveProfile, btnLogout, btnDeleteAccount;
+    
+    private AuthService authService;
+    private PreferenceManager preferenceManager;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -32,6 +38,9 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        
+        authService = new AuthService(requireContext());
+        preferenceManager = new PreferenceManager(requireContext());
         
         initViews(view);
         setupClickListeners();
@@ -121,16 +130,51 @@ public class ProfileFragment extends Fragment {
         builder.setTitle("Logout")
                .setMessage("Are you sure you want to logout?")
                .setPositiveButton("Logout", (dialog, which) -> {
-                   // Clear user session data here
-                   Intent intent = new Intent(getActivity(), LoginActivity.class);
-                   intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                   startActivity(intent);
-                   if (getActivity() != null) {
-                       getActivity().finish();
-                   }
+                   performLogout();
                })
                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                .show();
+    }
+    
+    /**
+     * Perform logout using AuthService
+     */
+    private void performLogout() {
+        // Show progress (you can add a progress dialog here if needed)
+        btnLogout.setEnabled(false);
+        btnLogout.setText("Logging out...");
+        
+        authService.logout(new AuthService.AuthCallback() {
+            @Override
+            public void onSuccess(AuthResponse response) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Logout successful", Toast.LENGTH_SHORT).show();
+                        
+                        // Navigate to login screen
+                        Intent intent = new Intent(getActivity(), LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        getActivity().finish();
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        // Even if logout API fails, still clear local data and navigate to login
+                        Toast.makeText(getContext(), "Logged out", Toast.LENGTH_SHORT).show();
+                        
+                        Intent intent = new Intent(getActivity(), LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        getActivity().finish();
+                    });
+                }
+            }
+        });
     }
 
     private void showDeactivateAccountDialog() {

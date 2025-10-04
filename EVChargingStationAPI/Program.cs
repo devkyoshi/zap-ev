@@ -141,13 +141,15 @@ builder.Services.AddSwaggerGen(options =>
 
 // Add CORS (strict - only allow frontend origin)
 var frontendOrigin = builder.Configuration["Frontend__Origin"];
+string[] allowedOrigins = frontendOrigin?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        if (!string.IsNullOrEmpty(frontendOrigin))
+        if (allowedOrigins.Length > 0)
         {
-            policy.WithOrigins(frontendOrigin)
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();

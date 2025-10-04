@@ -7,16 +7,33 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.content.Intent;
 
 import com.ead.zap.R;
+import com.ead.zap.services.AuthService;
+import com.ead.zap.ui.auth.LoginActivity;
 import com.ead.zap.ui.profile.ProfileFragment;
+import com.ead.zap.utils.PreferenceManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class EVOwnerMain extends AppCompatActivity {
+    
+    private AuthService authService;
+    private PreferenceManager preferenceManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        authService = new AuthService(this);
+        preferenceManager = new PreferenceManager(this);
+        
+        // Check authentication status
+        if (!authService.isAuthenticated()) {
+            redirectToLogin();
+            return;
+        }
+        
         try {
             setContentView(R.layout.activity_owner_main);
 
@@ -74,5 +91,25 @@ public class EVOwnerMain extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        // Re-check authentication status when activity resumes
+        if (!authService.isAuthenticated()) {
+            redirectToLogin();
+        }
+    }
+    
+    /**
+     * Redirect to login activity if not authenticated
+     */
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }
