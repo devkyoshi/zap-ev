@@ -164,6 +164,22 @@ public class PreferenceManager {
         return pref.getString(KEY_USER_NIC, null);
     }
 
+    // ============ Extended Profile Information ============
+    
+    public void saveString(String key, String value) {
+        editor.putString(key, value);
+        editor.apply();
+    }
+    
+    public String getString(String key, String defaultValue) {
+        return pref.getString(key, defaultValue);
+    }
+    
+    public void removeKey(String key) {
+        editor.remove(key);
+        editor.apply();
+    }
+
     /**
      * Check if current user is EV Owner
      */

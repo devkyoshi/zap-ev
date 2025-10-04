@@ -2,24 +2,34 @@ package com.ead.zap.ui.owner;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.ead.zap.R;
+import com.ead.zap.models.ProfileResponse;
+import com.ead.zap.services.ProfileService;
 import com.ead.zap.ui.owner.modals.CreateBookingActivity;
+import com.ead.zap.utils.PreferenceManager;
 import com.google.android.material.card.MaterialCardView;
 
 public class OwnerHomeFragment extends Fragment {
+    private static final String TAG = "OwnerHomeFragment";
 
     private TextView tvWelcomeText, tvPendingCount, tvApprovedCount, 
                     tvUpcomingReservation, tvNearbyStationsCount;
     private MaterialCardView cardQuickCharge, cardHistory, cardUpcomingReservation;
+    
+    // Services
+    private ProfileService profileService;
+    private PreferenceManager preferenceManager;
 
     public OwnerHomeFragment() {
         // Required empty public constructor
@@ -36,11 +46,19 @@ public class OwnerHomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         
         try {
+            initServices();
             initViews(view);
             setupClickListeners();
             loadDashboardData();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void initServices() {
+        if (getContext() != null) {
+            profileService = new ProfileService(getContext());
+            preferenceManager = new PreferenceManager(getContext());
         }
     }
 
@@ -90,13 +108,8 @@ public class OwnerHomeFragment extends Fragment {
     }
 
     private void loadDashboardData() {
-        // In a real app, this would load data from the database or API
-        // For now, we'll use mock data
-
-        // Update welcome text with user name
-        if (tvWelcomeText != null) {
-            tvWelcomeText.setText("Welcome, Alex");
-        }
+        // Load user profile data and update welcome text
+        loadUserProfile();
 
         // Load reservation counts
         loadReservationCounts();
@@ -106,6 +119,71 @@ public class OwnerHomeFragment extends Fragment {
         
         // Load nearby stations count
         loadNearbyStationsCount();
+    }
+
+    private void loadUserProfile() {
+        if (profileService == null) {
+            Log.e(TAG, "ProfileService is null");
+            setWelcomeTextFallback();
+            return;
+        }
+
+        // First try to get cached profile data for quick display
+        ProfileResponse cachedProfile = profileService.getCachedProfile();
+        if (cachedProfile != null) {
+            updateWelcomeText(cachedProfile.getDisplayName());
+        } else {
+            // Use fallback from preferences while loading
+            String displayName = profileService.getUserDisplayName();
+            updateWelcomeText(displayName);
+        }
+
+        // Get the current user ID from preferences
+        String userId = preferenceManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Log.e(TAG, "No user ID found in preferences");
+            setWelcomeTextFallback();
+            return;
+        }
+
+        // Fetch fresh profile data from API
+        profileService.getUserProfile(userId, new ProfileService.ProfileCallback() {
+            @Override
+            public void onSuccess(ProfileResponse profile) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        updateWelcomeText(profile.getDisplayName());
+                        Log.d(TAG, "Profile loaded successfully: " + profile.getDisplayName());
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to load profile: " + error);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        // Keep the cached/fallback name, don't show error to user
+                        // Just log it for debugging
+                        Log.d(TAG, "Using cached/fallback profile data due to error");
+                    });
+                }
+            }
+        });
+    }
+
+    private void updateWelcomeText(String displayName) {
+        if (tvWelcomeText != null && displayName != null && !displayName.isEmpty()) {
+            tvWelcomeText.setText("Welcome, " + displayName);
+        } else {
+            setWelcomeTextFallback();
+        }
+    }
+
+    private void setWelcomeTextFallback() {
+        if (tvWelcomeText != null) {
+            tvWelcomeText.setText("Welcome!");
+        }
     }
 
     private void loadReservationCounts() {

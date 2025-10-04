@@ -83,7 +83,9 @@ public class AuthResponse {
      * Check if user is EV Owner
      */
     public boolean isEVOwner() {
-        return "EVOwner".equalsIgnoreCase(userType);
+        boolean result = "EVOwner".equalsIgnoreCase(userType);
+        System.out.println("DEBUG: isEVOwner() - userType: '" + userType + "' -> " + result);
+        return result;
     }
 
     /**

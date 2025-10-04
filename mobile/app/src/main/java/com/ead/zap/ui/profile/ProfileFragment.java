@@ -3,6 +3,7 @@ package com.ead.zap.ui.profile;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,20 +15,28 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.ead.zap.R;
+import com.ead.zap.models.ProfileResponse;
+import com.ead.zap.models.ProfileUpdateRequest;
 import com.ead.zap.models.auth.AuthResponse;
 import com.ead.zap.services.AuthService;
+import com.ead.zap.services.ProfileService;
 import com.ead.zap.ui.auth.LoginActivity;
 import com.ead.zap.ui.owner.ReactivationInfoActivity;
 import com.ead.zap.utils.PreferenceManager;
+import com.ead.zap.utils.ProfileValidator;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class ProfileFragment extends Fragment {
+    private static final String TAG = "ProfileFragment";
 
     private TextInputEditText etFirstName, etLastName, etNic, etEmail, etPhone;
     private Button btnSaveProfile, btnLogout, btnDeleteAccount;
     
     private AuthService authService;
+    private ProfileService profileService;
     private PreferenceManager preferenceManager;
+    
+    private ProfileResponse currentProfile;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -40,6 +49,7 @@ public class ProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         
         authService = new AuthService(requireContext());
+        profileService = new ProfileService(requireContext());
         preferenceManager = new PreferenceManager(requireContext());
         
         initViews(view);
@@ -68,13 +78,76 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadUserData() {
-        // In a real app, this would load user data from the database or API
-        // For now, we'll use mock data
-        etFirstName.setText("Alex");
-        etLastName.setText("Johnson");
-        etNic.setText("123456789V");
-        etEmail.setText("alex.johnson@email.com");
-        etPhone.setText("+94 77 123 4567");
+        // First try to load cached data for immediate display
+        ProfileResponse cachedProfile = profileService.getCachedProfile();
+        if (cachedProfile != null) {
+            populateFields(cachedProfile);
+        }
+
+        // Get user ID from preferences
+        String userId = preferenceManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Log.e(TAG, "No user ID found in preferences");
+            showErrorAndLoadFallback();
+            return;
+        }
+
+        // Load fresh data from API
+        profileService.getUserProfile(userId, new ProfileService.ProfileCallback() {
+            @Override
+            public void onSuccess(ProfileResponse profile) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        currentProfile = profile;
+                        populateFields(profile);
+                        Log.d(TAG, "Profile loaded successfully");
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to load profile: " + error);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Unable to load profile data", Toast.LENGTH_SHORT).show();
+                        // Keep any cached data that was already displayed
+                        showErrorAndLoadFallback();
+                    });
+                }
+            }
+        });
+    }
+
+    private void populateFields(ProfileResponse profile) {
+        if (profile != null) {
+            etFirstName.setText(profile.getFirstName() != null ? profile.getFirstName() : "");
+            etLastName.setText(profile.getLastName() != null ? profile.getLastName() : "");
+            etNic.setText(profile.getNic() != null ? profile.getNic() : "");
+            etEmail.setText(profile.getEmail() != null ? profile.getEmail() : "");
+            etPhone.setText(profile.getPhoneNumber() != null ? profile.getPhoneNumber() : "");
+        }
+    }
+
+    private void showErrorAndLoadFallback() {
+        // Load fallback data from preferences
+        String userName = preferenceManager.getUserName();
+        String email = preferenceManager.getUserEmail();
+        String nic = preferenceManager.getUserNIC();
+        
+        // Parse name into first and last name if available
+        if (userName != null && userName.contains(" ")) {
+            String[] nameParts = userName.split(" ", 2);
+            etFirstName.setText(nameParts[0]);
+            etLastName.setText(nameParts[1]);
+        } else {
+            etFirstName.setText(userName != null ? userName : "");
+            etLastName.setText("");
+        }
+        
+        etNic.setText(nic != null ? nic : "");
+        etEmail.setText(email != null ? email : "");
+        etPhone.setText(""); // Phone not stored in current PreferenceManager
     }
 
     private void saveProfile() {
@@ -82,43 +155,118 @@ public class ProfileFragment extends Fragment {
             return;
         }
 
-        // In a real app, this would save the data to the database or API
         String firstName = etFirstName.getText().toString().trim();
         String lastName = etLastName.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
         String phone = etPhone.getText().toString().trim();
+        String nic = etNic.getText().toString().trim();
 
-        // Simulate save operation
-        Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+        // Get user ID from preferences
+        String userId = preferenceManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Toast.makeText(getContext(), "Unable to save: User ID not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Create update request
+        ProfileUpdateRequest updateRequest = new ProfileUpdateRequest();
+        updateRequest.setNic(nic);
+        updateRequest.setFirstName(firstName);
+        updateRequest.setLastName(lastName);
+        updateRequest.setEmail(email);
+        updateRequest.setPhoneNumber(phone);
+        
+        // Keep existing vehicle details if available
+        if (currentProfile != null && currentProfile.getVehicleDetails() != null) {
+            updateRequest.setVehicleDetails(currentProfile.getVehicleDetails());
+        }
+
+        // Disable save button and show loading state
+        btnSaveProfile.setEnabled(false);
+        btnSaveProfile.setText("Saving...");
+
+        // Update profile via API
+        profileService.updateUserProfile(userId, updateRequest, new ProfileService.ProfileUpdateCallback() {
+            @Override
+            public void onSuccess(ProfileResponse updatedProfile) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        currentProfile = updatedProfile;
+                        btnSaveProfile.setEnabled(true);
+                        btnSaveProfile.setText("Save Profile");
+                        
+                        Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, "Profile updated successfully");
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to update profile: " + error);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        btnSaveProfile.setEnabled(true);
+                        btnSaveProfile.setText("Save Profile");
+                        
+                        String errorMessage = "Failed to update profile";
+                        if (error != null && !error.isEmpty()) {
+                            errorMessage += ": " + error;
+                        }
+                        Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
+                    });
+                }
+            }
+        });
     }
 
     private boolean validateForm() {
         boolean isValid = true;
 
+        // Clear previous errors
+        etFirstName.setError(null);
+        etLastName.setError(null);
+        etEmail.setError(null);
+        etPhone.setError(null);
+        etNic.setError(null);
+
+        // Validate first name
         String firstName = etFirstName.getText().toString().trim();
-        if (firstName.isEmpty()) {
-            etFirstName.setError("First name is required");
+        ProfileValidator.ValidationResult firstNameResult = ProfileValidator.validateFirstName(firstName);
+        if (firstNameResult.hasError()) {
+            etFirstName.setError(firstNameResult.getErrorMessage());
             isValid = false;
         }
 
+        // Validate last name
         String lastName = etLastName.getText().toString().trim();
-        if (lastName.isEmpty()) {
-            etLastName.setError("Last name is required");
+        ProfileValidator.ValidationResult lastNameResult = ProfileValidator.validateLastName(lastName);
+        if (lastNameResult.hasError()) {
+            etLastName.setError(lastNameResult.getErrorMessage());
             isValid = false;
         }
 
+        // Validate email
         String email = etEmail.getText().toString().trim();
-        if (email.isEmpty()) {
-            etEmail.setError("Email is required");
-            isValid = false;
-        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            etEmail.setError("Please enter a valid email address");
+        ProfileValidator.ValidationResult emailResult = ProfileValidator.validateEmail(email);
+        if (emailResult.hasError()) {
+            etEmail.setError(emailResult.getErrorMessage());
             isValid = false;
         }
 
+        // Validate phone number
         String phone = etPhone.getText().toString().trim();
-        if (phone.isEmpty()) {
-            etPhone.setError("Phone number is required");
+        ProfileValidator.ValidationResult phoneResult = ProfileValidator.validatePhoneNumber(phone);
+        if (phoneResult.hasError()) {
+            etPhone.setError(phoneResult.getErrorMessage());
+            isValid = false;
+        }
+
+        // Validate NIC (though it should be read-only)
+        String nic = etNic.getText().toString().trim();
+        ProfileValidator.ValidationResult nicResult = ProfileValidator.validateNIC(nic);
+        if (nicResult.hasError()) {
+            etNic.setError(nicResult.getErrorMessage());
             isValid = false;
         }
 
@@ -149,6 +297,9 @@ public class ProfileFragment extends Fragment {
             public void onSuccess(AuthResponse response) {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
+                        // Clear profile cache on successful logout
+                        profileService.clearCache();
+                        
                         Toast.makeText(getContext(), "Logout successful", Toast.LENGTH_SHORT).show();
                         
                         // Navigate to login screen
@@ -165,6 +316,8 @@ public class ProfileFragment extends Fragment {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         // Even if logout API fails, still clear local data and navigate to login
+                        profileService.clearCache();
+                        
                         Toast.makeText(getContext(), "Logged out", Toast.LENGTH_SHORT).show();
                         
                         Intent intent = new Intent(getActivity(), LoginActivity.class);
@@ -238,6 +391,16 @@ public class ProfileFragment extends Fragment {
         
         if (getActivity() != null) {
             getActivity().finish();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Refresh profile data when fragment becomes visible
+        // Only if we don't have current profile data
+        if (currentProfile == null) {
+            loadUserData();
         }
     }
 }

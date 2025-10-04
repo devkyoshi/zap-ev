@@ -8,6 +8,7 @@ import com.ead.zap.database.dao.EVOwnerDAO;
 import com.ead.zap.models.EVOwner;
 import com.ead.zap.models.User;
 import com.ead.zap.models.auth.*;
+import com.ead.zap.models.common.ApiResponse;
 import com.ead.zap.network.NetworkClient;
 import com.ead.zap.utils.PreferenceManager;
 
@@ -56,18 +57,26 @@ public class AuthService {
     public void loginEVOwner(String nic, String password, AuthCallback callback) {
         EVOwnerLoginRequest request = new EVOwnerLoginRequest(nic, password);
 
-        Call<AuthResponse> call = authApiService.loginEVOwner(request);
-        call.enqueue(new Callback<AuthResponse>() {
+        Call<ApiResponse<AuthResponse>> call = authApiService.loginEVOwner(request);
+        call.enqueue(new Callback<ApiResponse<AuthResponse>>() {
             @Override
-            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+            public void onResponse(Call<ApiResponse<AuthResponse>> call, Response<ApiResponse<AuthResponse>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    AuthResponse authResponse = response.body();
-
-                    // Save authentication data
-                    saveAuthData(authResponse);
-
-                    Log.d(TAG, "EV Owner login successful");
-                    callback.onSuccess(authResponse);
+                    ApiResponse<AuthResponse> apiResponse = response.body();
+                    
+                    if (apiResponse.hasValidData()) {
+                        AuthResponse authResponse = apiResponse.getData();
+                        
+                        // Save authentication data
+                        saveAuthData(authResponse);
+                        
+                        Log.d(TAG, "EV Owner login successful");
+                        callback.onSuccess(authResponse);
+                    } else {
+                        String error = apiResponse.getErrorMessage();
+                        Log.e(TAG, "Login failed: " + error);
+                        callback.onError(error);
+                    }
                 } else {
                     String error = "Login failed: " + response.message();
                     Log.e(TAG, error);
@@ -76,7 +85,7 @@ public class AuthService {
             }
 
             @Override
-            public void onFailure(Call<AuthResponse> call, Throwable t) {
+            public void onFailure(Call<ApiResponse<AuthResponse>> call, Throwable t) {
                 String error = "Network error: " + t.getMessage();
                 Log.e(TAG, error, t);
                 callback.onError(error);
@@ -85,23 +94,31 @@ public class AuthService {
     }
 
     /**
-     * Login for regular users (BackOffice/StationOperator)
+     * Login for regular users (StationOperator)
      */
     public void login(String username, String password, AuthCallback callback) {
         LoginRequest request = new LoginRequest(username, password);
         
-        Call<AuthResponse> call = authApiService.login(request);
-        call.enqueue(new Callback<AuthResponse>() {
+        Call<ApiResponse<AuthResponse>> call = authApiService.login(request);
+        call.enqueue(new Callback<ApiResponse<AuthResponse>>() {
             @Override
-            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+            public void onResponse(Call<ApiResponse<AuthResponse>> call, Response<ApiResponse<AuthResponse>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    AuthResponse authResponse = response.body();
+                    ApiResponse<AuthResponse> apiResponse = response.body();
                     
-                    // Save authentication data
-                    saveAuthData(authResponse);
-                    
-                    Log.d(TAG, "User login successful");
-                    callback.onSuccess(authResponse);
+                    if (apiResponse.hasValidData()) {
+                        AuthResponse authResponse = apiResponse.getData();
+                        
+                        // Save authentication data
+                        saveAuthData(authResponse);
+                        
+                        Log.d(TAG, "User login successful");
+                        callback.onSuccess(authResponse);
+                    } else {
+                        String error = apiResponse.getErrorMessage();
+                        Log.e(TAG, "Login failed: " + error);
+                        callback.onError(error);
+                    }
                 } else {
                     String error = "Login failed: " + response.message();
                     Log.e(TAG, error);
@@ -110,7 +127,7 @@ public class AuthService {
             }
 
             @Override
-            public void onFailure(Call<AuthResponse> call, Throwable t) {
+            public void onFailure(Call<ApiResponse<AuthResponse>> call, Throwable t) {
                 String error = "Network error: " + t.getMessage();
                 Log.e(TAG, error, t);
                 callback.onError(error);
@@ -122,18 +139,26 @@ public class AuthService {
      * Register new EV Owner
      */
     public void registerEVOwner(EVOwnerRegistrationRequest registrationRequest, RegistrationCallback callback) {
-        Call<EVOwner> call = authApiService.registerEVOwner(registrationRequest);
-        call.enqueue(new Callback<EVOwner>() {
+        Call<ApiResponse<EVOwner>> call = authApiService.registerEVOwner(registrationRequest);
+        call.enqueue(new Callback<ApiResponse<EVOwner>>() {
             @Override
-            public void onResponse(Call<EVOwner> call, Response<EVOwner> response) {
+            public void onResponse(Call<ApiResponse<EVOwner>> call, Response<ApiResponse<EVOwner>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    EVOwner evOwner = response.body();
+                    ApiResponse<EVOwner> apiResponse = response.body();
                     
-                    // Save EV Owner data locally
-                    evOwnerDAO.insertOrUpdateEVOwner(evOwner);
-                    
-                    Log.d(TAG, "EV Owner registration successful");
-                    callback.onSuccess(evOwner);
+                    if (apiResponse.hasValidData()) {
+                        EVOwner evOwner = apiResponse.getData();
+                        
+                        // Save EV Owner data locally
+                        evOwnerDAO.insertOrUpdateEVOwner(evOwner);
+                        
+                        Log.d(TAG, "EV Owner registration successful");
+                        callback.onSuccess(evOwner);
+                    } else {
+                        String error = apiResponse.getErrorMessage();
+                        Log.e(TAG, "Registration failed: " + error);
+                        callback.onError(error);
+                    }
                 } else {
                     String error = "Registration failed: " + response.message();
                     Log.e(TAG, error);
@@ -142,7 +167,7 @@ public class AuthService {
             }
 
             @Override
-            public void onFailure(Call<EVOwner> call, Throwable t) {
+            public void onFailure(Call<ApiResponse<EVOwner>> call, Throwable t) {
                 String error = "Network error: " + t.getMessage();
                 Log.e(TAG, error, t);
                 callback.onError(error);
@@ -162,18 +187,29 @@ public class AuthService {
 
         RefreshTokenRequest request = new RefreshTokenRequest(refreshToken);
         
-        Call<AuthResponse> call = authApiService.refreshToken(request);
-        call.enqueue(new Callback<AuthResponse>() {
+        Call<ApiResponse<AuthResponse>> call = authApiService.refreshToken(request);
+        call.enqueue(new Callback<ApiResponse<AuthResponse>>() {
             @Override
-            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+            public void onResponse(Call<ApiResponse<AuthResponse>> call, Response<ApiResponse<AuthResponse>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    AuthResponse authResponse = response.body();
+                    ApiResponse<AuthResponse> apiResponse = response.body();
                     
-                    // Update stored tokens
-                    saveAuthData(authResponse);
-                    
-                    Log.d(TAG, "Token refresh successful");
-                    callback.onSuccess(authResponse);
+                    if (apiResponse.hasValidData()) {
+                        AuthResponse authResponse = apiResponse.getData();
+                        
+                        // Update stored tokens
+                        saveAuthData(authResponse);
+                        
+                        Log.d(TAG, "Token refresh successful");
+                        callback.onSuccess(authResponse);
+                    } else {
+                        String error = apiResponse.getErrorMessage();
+                        Log.e(TAG, "Token refresh failed: " + error);
+                        
+                        // Clear invalid tokens
+                        logout(null);
+                        callback.onError(error);
+                    }
                 } else {
                     String error = "Token refresh failed: " + response.message();
                     Log.e(TAG, error);
@@ -185,7 +221,7 @@ public class AuthService {
             }
 
             @Override
-            public void onFailure(Call<AuthResponse> call, Throwable t) {
+            public void onFailure(Call<ApiResponse<AuthResponse>> call, Throwable t) {
                 String error = "Network error: " + t.getMessage();
                 Log.e(TAG, error, t);
                 callback.onError(error);
@@ -206,14 +242,14 @@ public class AuthService {
             LogoutRequest request = new LogoutRequest(refreshToken);
             String authHeader = "Bearer " + accessToken;
             
-            Call<Void> call = authApiService.logout(authHeader, request);
-            call.enqueue(new Callback<Void>() {
+            Call<ApiResponse<Void>> call = authApiService.logout(authHeader, request);
+            call.enqueue(new Callback<ApiResponse<Void>>() {
                 @Override
-                public void onResponse(Call<Void> call, Response<Void> response) {
+                public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
                     // Clear local data regardless of API response
                     clearLocalData();
                     
-                    if (response.isSuccessful()) {
+                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                         Log.d(TAG, "Logout successful");
                         if (callback != null) {
                             callback.onSuccess(null);
@@ -227,7 +263,7 @@ public class AuthService {
                 }
 
                 @Override
-                public void onFailure(Call<Void> call, Throwable t) {
+                public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
                     Log.w(TAG, "Logout API call failed: " + t.getMessage());
                     
                     // Clear local data even if API call fails

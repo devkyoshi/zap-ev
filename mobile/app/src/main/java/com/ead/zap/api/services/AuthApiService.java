@@ -2,6 +2,7 @@ package com.ead.zap.api.services;
 
 import com.ead.zap.config.ApiConfig;
 import com.ead.zap.models.auth.*;
+import com.ead.zap.models.common.ApiResponse;
 import com.ead.zap.models.EVOwner;
 
 import retrofit2.Call;
@@ -20,28 +21,28 @@ public interface AuthApiService {
      * POST /api/auth/login
      */
     @POST(ApiConfig.Auth.LOGIN)
-    Call<AuthResponse> login(@Body LoginRequest request);
+    Call<ApiResponse<AuthResponse>> login(@Body LoginRequest request);
 
     /**
      * Login for EV Owners
      * POST /api/auth/login/evowner
      */
     @POST(ApiConfig.Auth.LOGIN_EV_OWNER)
-    Call<AuthResponse> loginEVOwner(@Body EVOwnerLoginRequest request);
+    Call<ApiResponse<AuthResponse>> loginEVOwner(@Body EVOwnerLoginRequest request);
 
     /**
      * Refresh access token
      * POST /api/auth/refresh
      */
     @POST(ApiConfig.Auth.REFRESH)
-    Call<AuthResponse> refreshToken(@Body RefreshTokenRequest request);
+    Call<ApiResponse<AuthResponse>> refreshToken(@Body RefreshTokenRequest request);
 
     /**
      * Logout user
      * POST /api/auth/logout
      */
     @POST(ApiConfig.Auth.LOGOUT)
-    Call<Void> logout(
+    Call<ApiResponse<Void>> logout(
         @Header("Authorization") String authToken,
         @Body LogoutRequest request
     );
@@ -51,5 +52,5 @@ public interface AuthApiService {
      * POST /api/evowners/register
      */
     @POST(ApiConfig.EVOwners.REGISTER)
-    Call<EVOwner> registerEVOwner(@Body EVOwnerRegistrationRequest request);
+    Call<ApiResponse<EVOwner>> registerEVOwner(@Body EVOwnerRegistrationRequest request);
 }
