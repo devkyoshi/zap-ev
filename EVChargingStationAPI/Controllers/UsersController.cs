@@ -238,5 +238,27 @@ namespace EVChargingStationAPI.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Gets all unassigned station operators (BackOffice only)
+        /// </summary>
+        [HttpGet("unassigned-operators")]
+        [Authorize(Roles = "BackOffice")]
+        public async Task<IActionResult> GetUnassignedStationOperators()
+        {
+            try
+            {
+                var result = await _userService.GetUnassignedStationOperatorsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
     }
 }

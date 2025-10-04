@@ -24,5 +24,7 @@ namespace EVChargingStationAPI.Services
         Task<ApiResponseDTO<List<ChargingStation>>> GetNearbyStationsAsync(NearbyStationsRequestDTO request);
         Task<ApiResponseDTO<bool>> UpdateSlotAvailabilityAsync(string stationId, int availableSlots, string userId);
         Task<ApiResponseDTO<bool>> AssignStationOperatorAsync(string stationId, string operatorUserId, string backOfficeUserId);
+        Task<ApiResponseDTO<bool>> RevokeStationOperatorAsync(string stationId, string operatorUserId, string backOfficeUserId);
+        Task<ApiResponseDTO<List<User>>> GetStationAssignedUsersAsync(string stationId, string backOfficeUserId);
     }
 }

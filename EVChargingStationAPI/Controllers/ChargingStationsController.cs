@@ -359,5 +359,81 @@ namespace EVChargingStationAPI.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Revokes a station operator's assignment from a charging station (BackOffice only)
+        /// </summary>
+        [HttpPost("{stationId}/revoke-operator")]
+        [Authorize(Roles = "BackOffice")]
+        public async Task<IActionResult> RevokeStationOperator(string stationId, [FromQuery] string operatorUserId)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.RevokeStationOperatorAsync(stationId, operatorUserId, userId);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Gets all users assigned to a charging station (BackOffice only)
+        /// </summary>
+        [HttpGet("{stationId}/assigned-users")]
+        [Authorize(Roles = "BackOffice")]
+        public async Task<IActionResult> GetStationAssignedUsers(string stationId)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.GetStationAssignedUsersAsync(stationId, userId);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
     }
 }
