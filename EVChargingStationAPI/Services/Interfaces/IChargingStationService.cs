@@ -15,13 +15,14 @@ namespace EVChargingStationAPI.Services
 {
     public interface IChargingStationService
     {
-        Task<ApiResponseDTO<ChargingStation>> CreateChargingStationAsync(CreateChargingStationDTO createStationDto);
+        Task<ApiResponseDTO<ChargingStation>> CreateChargingStationAsync(CreateChargingStationDTO createStationDto, string backOfficeUserId);
         Task<ApiResponseDTO<List<ChargingStation>>> GetAllChargingStationsAsync();
         Task<ApiResponseDTO<ChargingStation>> GetChargingStationByIdAsync(string id);
-        Task<ApiResponseDTO<ChargingStation>> UpdateChargingStationAsync(string id, UpdateChargingStationDTO updateStationDto);
-        Task<ApiResponseDTO<bool>> DeleteChargingStationAsync(string id);
-        Task<ApiResponseDTO<bool>> ActivateDeactivateChargingStationAsync(string id, bool isActive);
+        Task<ApiResponseDTO<ChargingStation>> UpdateChargingStationAsync(string id, UpdateChargingStationDTO updateStationDto, string userId);
+        Task<ApiResponseDTO<bool>> DeleteChargingStationAsync(string id, string userId);
+        Task<ApiResponseDTO<bool>> ActivateDeactivateChargingStationAsync(string id, bool isActive, string userId);
         Task<ApiResponseDTO<List<ChargingStation>>> GetNearbyStationsAsync(NearbyStationsRequestDTO request);
-        Task<ApiResponseDTO<bool>> UpdateSlotAvailabilityAsync(string stationId, int availableSlots);
+        Task<ApiResponseDTO<bool>> UpdateSlotAvailabilityAsync(string stationId, int availableSlots, string userId);
+        Task<ApiResponseDTO<bool>> AssignStationOperatorAsync(string stationId, string operatorUserId, string backOfficeUserId);
     }
 }

@@ -8,10 +8,12 @@
  * Description: Handles charging station management and location-based operations
  */
 
+using EVChargingStationAPI.Models;
 using EVChargingStationAPI.Models.DTOs;
 using EVChargingStationAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EVChargingStationAPI.Controllers
 {
@@ -49,7 +51,17 @@ namespace EVChargingStationAPI.Controllers
                     });
                 }
 
-                var result = await _chargingStationService.CreateChargingStationAsync(createStationDto);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.CreateChargingStationAsync(createStationDto, userId);
 
                 if (result.Success)
                 {
@@ -135,7 +147,17 @@ namespace EVChargingStationAPI.Controllers
                     });
                 }
 
-                var result = await _chargingStationService.UpdateChargingStationAsync(id, updateStationDto);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.UpdateChargingStationAsync(id, updateStationDto, userId);
 
                 if (result.Success)
                 {
@@ -194,7 +216,17 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
-                var result = await _chargingStationService.UpdateSlotAvailabilityAsync(id, availableSlots);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.UpdateSlotAvailabilityAsync(id, availableSlots, userId);
 
                 if (result.Success)
                 {
@@ -222,7 +254,17 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
-                var result = await _chargingStationService.ActivateDeactivateChargingStationAsync(id, isActive);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.ActivateDeactivateChargingStationAsync(id, isActive, userId);
 
                 if (result.Success)
                 {
@@ -250,7 +292,56 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
-                var result = await _chargingStationService.DeleteChargingStationAsync(id);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.DeleteChargingStationAsync(id, userId);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
+
+        /// <summary>
+        /// Assigns a station operator to a charging station (BackOffice only)
+        /// </summary>
+        [HttpPost("{stationId}/assign-operator")]
+        [Authorize(Roles = "BackOffice")]
+        public async Task<IActionResult> AssignStationOperator(string stationId, [FromQuery] string operatorUserId)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.AssignStationOperatorAsync(stationId, operatorUserId, userId);
 
                 if (result.Success)
                 {

@@ -112,6 +112,8 @@ PATCH /api/chargingstations/{id}/slots
 
 PATCH /api/chargingstations/{id}/status
 
+POST /api/chargingstations/{stationId}/assign-operator
+
 📅 Bookings
 
 GET/POST/PUT/DELETE /api/bookings
