@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class CreateBookingActivity extends AppCompatActivity {
+    private static final int STATION_SELECTION_REQUEST = 1001;
 
     private TextInputEditText etBookingDate, etBookingTime;
     private AutoCompleteTextView etDuration;
@@ -36,6 +37,13 @@ public class CreateBookingActivity extends AppCompatActivity {
     private Calendar selectedDate = Calendar.getInstance();
     private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
     private SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+
+    // Selected station data
+    private String selectedStationId;
+    private String selectedStationName;
+    private String selectedStationAddress;
+    private double selectedStationPrice;
+    private int selectedStationAvailableSlots;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -174,30 +182,31 @@ public class CreateBookingActivity extends AppCompatActivity {
 
         // Station selection click listener
         findViewById(R.id.station_selection_card).setOnClickListener(v -> {
-            // Open station selection activity
+            Intent intent = new Intent(CreateBookingActivity.this, StationSelectionActivity.class);
+            startActivityForResult(intent, STATION_SELECTION_REQUEST);
         });
     }
 
-    private boolean validateForm() {
-        boolean isValid = true;
-
-        if (etBookingDate.getText().toString().isEmpty()) {
-            etBookingDate.setError("Please select a date");
-            isValid = false;
-        }
-
-        if (etBookingTime.getText().toString().isEmpty()) {
-            etBookingTime.setError("Please select a time");
-            isValid = false;
-        }
-
-        if (etDuration.getText().toString().isEmpty()) {
-            etDuration.setError("Please select duration");
-            isValid = false;
-        }
-
-        return isValid;
-    }
+//    private boolean validateForm() {
+//        boolean isValid = true;
+//
+//        if (etBookingDate.getText().toString().isEmpty()) {
+//            etBookingDate.setError("Please select a date");
+//            isValid = false;
+//        }
+//
+//        if (etBookingTime.getText().toString().isEmpty()) {
+//            etBookingTime.setError("Please select a time");
+//            isValid = false;
+//        }
+//
+//        if (etDuration.getText().toString().isEmpty()) {
+//            etDuration.setError("Please select duration");
+//            isValid = false;
+//        }
+//
+//        return isValid;
+//    }
 
     private void proceedToSummary() {
         Vehicle selectedVehicle = vehicleAdapter.getSelectedVehicle();
@@ -215,10 +224,10 @@ public class CreateBookingActivity extends AppCompatActivity {
         double chargingRate = 50.0; // example rate per minute
         double totalCost = duration * chargingRate;
 
-        // For now, fake station data
-        String stationId = "ST001";
-        String stationName = tvSelectedStation.getText().toString();
-        String stationAddress = tvStationAddress.getText().toString();
+        // Use selected station data
+        String stationId = selectedStationId;
+        String stationName = selectedStationName;
+        String stationAddress = selectedStationAddress;
 
         // Create a Booking object
         Booking booking = new Booking(
@@ -236,6 +245,69 @@ public class CreateBookingActivity extends AppCompatActivity {
         Intent intent = new Intent(this, BookingSummaryActivity.class);
         intent.putExtra("booking", booking);
         startActivity(intent);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (requestCode == STATION_SELECTION_REQUEST && resultCode == RESULT_OK && data != null) {
+            // Get selected station data
+            selectedStationId = data.getStringExtra("selected_station_id");
+            selectedStationName = data.getStringExtra("selected_station_name");
+            selectedStationAddress = data.getStringExtra("selected_station_address");
+            selectedStationPrice = data.getDoubleExtra("selected_station_price", 0.0);
+            selectedStationAvailableSlots = data.getIntExtra("selected_station_available_slots", 0);
+            
+            // Update UI with selected station
+            updateSelectedStationUI();
+        }
+    }
+
+    private void updateSelectedStationUI() {
+        if (selectedStationName != null) {
+            tvSelectedStation.setText(selectedStationName);
+            tvStationAddress.setText(selectedStationAddress);
+            tvChargingRate.setText(String.format("Rs. %.2f / hour", selectedStationPrice));
+            
+            // Enable continue button if station is selected
+            updateContinueButton();
+        }
+    }
+
+    private void updateContinueButton() {
+        boolean canContinue = selectedStationId != null && 
+                             !etBookingDate.getText().toString().isEmpty() &&
+                             !etBookingTime.getText().toString().isEmpty() &&
+                             !etDuration.getText().toString().isEmpty();
+        btnContinue.setEnabled(canContinue);
+    }
+
+    private boolean validateForm() {
+        boolean isValid = true;
+
+        if (selectedStationId == null || selectedStationId.isEmpty()) {
+            // Show error that station must be selected
+            tvSelectedStation.setError("Please select a charging station");
+            isValid = false;
+        }
+
+        if (etBookingDate.getText().toString().isEmpty()) {
+            etBookingDate.setError("Please select a date");
+            isValid = false;
+        }
+
+        if (etBookingTime.getText().toString().isEmpty()) {
+            etBookingTime.setError("Please select a time");
+            isValid = false;
+        }
+
+        if (etDuration.getText().toString().isEmpty()) {
+            etDuration.setError("Please select duration");
+            isValid = false;
+        }
+
+        return isValid;
     }
 
 }

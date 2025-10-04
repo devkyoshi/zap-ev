@@ -14,11 +14,16 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.ead.zap.R;
+import com.ead.zap.models.ChargingStation;
 import com.ead.zap.models.ProfileResponse;
+import com.ead.zap.services.ChargingStationService;
+import com.ead.zap.services.LocationService;
 import com.ead.zap.services.ProfileService;
 import com.ead.zap.ui.owner.modals.CreateBookingActivity;
 import com.ead.zap.utils.PreferenceManager;
 import com.google.android.material.card.MaterialCardView;
+
+import java.util.List;
 
 public class OwnerHomeFragment extends Fragment {
     private static final String TAG = "OwnerHomeFragment";
@@ -30,6 +35,8 @@ public class OwnerHomeFragment extends Fragment {
     // Services
     private ProfileService profileService;
     private PreferenceManager preferenceManager;
+    private ChargingStationService chargingStationService;
+    private LocationService locationService;
 
     public OwnerHomeFragment() {
         // Required empty public constructor
@@ -59,6 +66,8 @@ public class OwnerHomeFragment extends Fragment {
         if (getContext() != null) {
             profileService = new ProfileService(getContext());
             preferenceManager = new PreferenceManager(getContext());
+            chargingStationService = new ChargingStationService(getContext());
+            locationService = new LocationService(getContext());
         }
     }
 
@@ -212,9 +221,92 @@ public class OwnerHomeFragment extends Fragment {
     }
 
     private void loadNearbyStationsCount() {
-        // Mock data for nearby stations
-        // The layout shows "5 stations within 5 km"
-        // In a real app, this would use location services and API calls
+        if (locationService == null || chargingStationService == null) {
+            Log.e(TAG, "Services not initialized");
+            return;
+        }
+
+        // Try to get location and nearby stations
+        if (locationService.hasLocationPermissions()) {
+            locationService.getCurrentLocation(new LocationService.LocationCallback() {
+                @Override
+                public void onLocationReceived(double latitude, double longitude) {
+                    // Get nearby stations within 5km radius
+                    chargingStationService.getNearbyStations(latitude, longitude, 5.0,
+                        new ChargingStationService.ChargingStationsCallback() {
+                            @Override
+                            public void onSuccess(List<ChargingStation> stations) {
+                                if (getActivity() != null && isAdded()) {
+                                    getActivity().runOnUiThread(() -> {
+                                        updateNearbyStationsCount(stations.size());
+                                    });
+                                }
+                            }
+
+                            @Override
+                            public void onError(String errorMessage) {
+                                Log.e(TAG, "Failed to load nearby stations: " + errorMessage);
+                                // Fallback to total count
+                                loadTotalStationsCount();
+                            }
+                        });
+                }
+
+                @Override
+                public void onLocationError(String errorMessage) {
+                    Log.e(TAG, "Location error: " + errorMessage);
+                    // Fallback to total count
+                    loadTotalStationsCount();
+                }
+
+                @Override
+                public void onPermissionRequired() {
+                    Log.d(TAG, "Location permission required, using total count");
+                    // Fallback to total count
+                    loadTotalStationsCount();
+                }
+            });
+        } else {
+            // No location permission, get total stations count
+            loadTotalStationsCount();
+        }
+    }
+
+    private void loadTotalStationsCount() {
+        chargingStationService.getAllChargingStations(new ChargingStationService.ChargingStationsCallback() {
+            @Override
+            public void onSuccess(List<ChargingStation> stations) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        updateNearbyStationsCount(stations.size());
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Log.e(TAG, "Failed to load stations: " + errorMessage);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        updateNearbyStationsCount(0);
+                    });
+                }
+            }
+        });
+    }
+
+    private void updateNearbyStationsCount(int stationCount) {
+        // Update the text overlay on the nearby stations map image
+        // Note: The layout currently shows this as a static overlay on the image
+        // You may want to find the TextView in the layout that shows this count
+        // and update it dynamically
+        
+        Log.d(TAG, "Found " + stationCount + " nearby stations");
+        
+        // If you have a TextView for showing the count, update it here:
+        // if (tvNearbyStationsCount != null) {
+        //     tvNearbyStationsCount.setText(stationCount + " stations nearby");
+        // }
     }
 
     @Override

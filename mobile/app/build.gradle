@@ -53,6 +53,12 @@ dependencies {
     implementation libs.room.runtime
     annotationProcessor libs.room.compiler
     
+    // Maps
+    implementation libs.osmdroid
+    
+    // Maps
+    implementation libs.osmdroid
+    
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
