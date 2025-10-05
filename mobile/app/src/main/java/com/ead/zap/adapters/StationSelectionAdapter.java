@@ -40,6 +40,7 @@ public class StationSelectionAdapter extends RecyclerView.Adapter<StationSelecti
 
     @Override
     public void onBindViewHolder(@NonNull StationViewHolder holder, int position) {
+        android.util.Log.d("StationSelectionAdapter", "onBindViewHolder called for position: " + position);
         ChargingStation station = stations.get(position);
         holder.bind(station);
     }
@@ -50,9 +51,11 @@ public class StationSelectionAdapter extends RecyclerView.Adapter<StationSelecti
     }
 
     public void updateStations(List<ChargingStation> newStations) {
+        android.util.Log.d("StationSelectionAdapter", "updateStations called with " + newStations.size() + " stations");
         this.stations.clear();
         this.stations.addAll(newStations);
         notifyDataSetChanged();
+        android.util.Log.d("StationSelectionAdapter", "Adapter updated, current size: " + this.stations.size());
     }
 
     class StationViewHolder extends RecyclerView.ViewHolder {

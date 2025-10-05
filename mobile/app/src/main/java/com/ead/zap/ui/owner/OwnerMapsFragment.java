@@ -539,7 +539,10 @@ public class OwnerMapsFragment extends Fragment implements StationMapListAdapter
             // Debug log
             for (int i = 0; i < allStations.size(); i++) {
                 ChargingStation station = allStations.get(i);
-                android.util.Log.d("OwnerMapsFragment", "Station " + i + ": " + station.getName() + " - " + station.getLocation().getAddress());
+                String locationText = (station.getLocation() != null && station.getLocation().getAddress() != null) 
+                    ? station.getLocation().getAddress() 
+                    : "No address";
+                android.util.Log.d("OwnerMapsFragment", "Station " + i + ": " + station.getName() + " - " + locationText);
             }
         }
     }

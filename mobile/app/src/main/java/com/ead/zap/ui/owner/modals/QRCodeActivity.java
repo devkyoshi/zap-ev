@@ -13,6 +13,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.ead.zap.R;
 import com.ead.zap.models.Booking;
+import com.ead.zap.models.BookingStatus;
 import com.ead.zap.ui.owner.EVOwnerMain;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
@@ -82,15 +83,15 @@ public class QRCodeActivity extends AppCompatActivity {
         tvBookingDate.setText(dateFormat.format(booking.getReservationDate()));
         tvBookingTime.setText(timeFormat.format(booking.getReservationTime()));
         tvDuration.setText(String.format(Locale.getDefault(), "%d minutes", booking.getDuration()));
-        tvStatus.setText(booking.getStatus());
+        tvStatus.setText(booking.getStatusString());
 
         // Set status color
         switch (booking.getStatus()) {
-            case "APPROVED":
+            case APPROVED:
                 tvStatus.setTextColor(getColor(R.color.primary_light));
                 tvInstructions.setText("Great! Your booking has been approved. Show this QR code to the station operator when you arrive for charging.");
                 break;
-            case "PENDING":
+            case PENDING:
                 tvStatus.setTextColor(getColor(R.color.amber_600));
                 tvInstructions.setText("Your booking is pending approval. You will receive a notification once it's approved. This QR code will be activated after approval.");
                 break;
@@ -103,11 +104,14 @@ public class QRCodeActivity extends AppCompatActivity {
 
     private void generateQRCode() {
         try {
-            // Create QR code data - in a real app, this would be more secure
-            String qrData = createQRCodeData();
-            
-            // Update booking with QR code data
-            booking.setQrCode(qrData);
+            // Use QR code from booking if available, otherwise create one
+            String qrData;
+            if (booking.getQrCode() != null && !booking.getQrCode().isEmpty()) {
+                qrData = booking.getQrCode();
+            } else {
+                qrData = createQRCodeData();
+                booking.setQrCode(qrData);
+            }
             
             // Generate QR code bitmap
             BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
@@ -123,17 +127,17 @@ public class QRCodeActivity extends AppCompatActivity {
     }
 
     private String createQRCodeData() {
-        // Create JSON-like string for QR code data
-        // In production, this should be properly encrypted and secured
+        // Create JSON-like string for QR code data as fallback
+        // The backend should provide the proper QR code data
         return "{\n" +
                 "  \"bookingId\": \"" + booking.getBookingId() + "\",\n" +
                 "  \"userId\": \"" + booking.getUserId() + "\",\n" +
-                "  \"stationId\": \"" + booking.getStationId() + "\",\n" +
+                "  \"stationId\": \"" + (booking.getStationId() != null ? booking.getStationId() : "N/A") + "\",\n" +
                 "  \"stationName\": \"" + booking.getStationName() + "\",\n" +
                 "  \"date\": \"" + dateFormat.format(booking.getReservationDate()) + "\",\n" +
                 "  \"time\": \"" + timeFormat.format(booking.getReservationTime()) + "\",\n" +
                 "  \"duration\": " + booking.getDuration() + ",\n" +
-                "  \"status\": \"" + booking.getStatus() + "\",\n" +
+                "  \"status\": \"" + booking.getStatus().getDisplayName() + "\",\n" +
                 "  \"customerName\": \"" + (booking.getUserId() != null ? booking.getUserId() : "Customer") + "\",\n" +
                 "  \"totalCost\": " + booking.getTotalCost() + ",\n" +
                 "  \"timestamp\": " + System.currentTimeMillis() + "\n" +

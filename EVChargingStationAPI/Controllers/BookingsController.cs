@@ -17,7 +17,7 @@ using System.Security.Claims;
 namespace EVChargingStationAPI.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/bookings")]
     [Authorize]
     public class BookingsController : ControllerBase
     {

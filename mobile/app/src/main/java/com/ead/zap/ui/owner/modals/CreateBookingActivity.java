@@ -4,6 +4,8 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Toast;
 
 import android.widget.Button;
 import android.widget.TextView;
@@ -14,6 +16,12 @@ import com.ead.zap.R;
 import com.ead.zap.adapters.VehicleSelectionAdapter;
 import com.ead.zap.models.Booking;
 import com.ead.zap.models.Vehicle;
+import com.ead.zap.models.VehicleDetail;
+import com.ead.zap.models.ChargingStation;
+import com.ead.zap.services.BookingService;
+import com.ead.zap.services.ChargingStationService;
+import com.ead.zap.services.ProfileService;
+import com.ead.zap.utils.PreferenceManager;
 import com.google.android.material.textfield.TextInputEditText;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -38,6 +46,12 @@ public class CreateBookingActivity extends AppCompatActivity {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
     private SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
 
+    // Services
+    private BookingService bookingService;
+    private ChargingStationService stationService;
+    private ProfileService profileService;
+    private PreferenceManager preferenceManager;
+
     // Selected station data
     private String selectedStationId;
     private String selectedStationName;
@@ -50,10 +64,18 @@ public class CreateBookingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_booking);
 
+        initServices();
         initViews();
         setupDateAndTimePickers();
         setupVehicleList();
         setupClickListeners();
+    }
+
+    private void initServices() {
+        bookingService = new BookingService(this);
+        stationService = new ChargingStationService(this);
+        profileService = new ProfileService(this);
+        preferenceManager = new PreferenceManager(this);
     }
 
     private void initViews() {
@@ -100,7 +122,7 @@ public class CreateBookingActivity extends AppCompatActivity {
         etDuration.setOnItemClickListener((parent, view, position, id) -> {
             // Extract duration value from selected text
             String selected = durationOptions[position];
-            // You can add logic here to update cost calculation
+            updateCostCalculation();
         });
     }
 
@@ -157,18 +179,60 @@ public class CreateBookingActivity extends AppCompatActivity {
     }
 
     private void setupVehicleList() {
-        List<Vehicle> vehicles = getVehicles(); // This would come from database
-        vehicleAdapter = new VehicleSelectionAdapter(vehicles);
+        // Initialize empty adapter first
+        vehicleAdapter = new VehicleSelectionAdapter(new ArrayList<>());
         rvVehicles.setLayoutManager(new LinearLayoutManager(this));
         rvVehicles.setAdapter(vehicleAdapter);
+        
+        // Load vehicles from profile
+        loadVehiclesFromProfile();
     }
 
-    private List<Vehicle> getVehicles() {
-        // Mock data - replace with actual database call
-        List<Vehicle> vehicles = new ArrayList<>();
-        vehicles.add(new Vehicle("1", "Tesla Model 3", "ABC-1234", "Electric"));
-        vehicles.add(new Vehicle("2", "Nissan Leaf", "XYZ-5678", "Electric"));
-        return vehicles;
+    private void loadVehiclesFromProfile() {
+        String userId = preferenceManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        profileService.getUserProfile(userId, new ProfileService.ProfileCallback() {
+            @Override
+            public void onSuccess(com.ead.zap.models.ProfileResponse profile) {
+                if (profile.getVehicleDetails() != null && !profile.getVehicleDetails().isEmpty()) {
+                    // Convert VehicleDetail to Vehicle objects
+                    List<Vehicle> vehicles = new ArrayList<>();
+                    for (VehicleDetail vehicleDetail : profile.getVehicleDetails()) {
+                        Vehicle vehicle = new Vehicle(
+                            String.valueOf(vehicles.size() + 1), // Simple ID
+                            vehicleDetail.getMake() + " " + vehicleDetail.getModel(),
+                            vehicleDetail.getLicensePlate(),
+                            "Electric" // Default type for all vehicles in EV app
+                        );
+                        vehicles.add(vehicle);
+                    }
+                    
+                    // Update adapter with real vehicles
+                    runOnUiThread(() -> {
+                        vehicleAdapter.updateVehicles(vehicles);
+                    });
+                } else {
+                    runOnUiThread(() -> {
+                        Toast.makeText(CreateBookingActivity.this, 
+                            "No vehicles found. Please add vehicles in your profile first.", 
+                            Toast.LENGTH_LONG).show();
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(CreateBookingActivity.this, 
+                        "Failed to load vehicles: " + error, 
+                        Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     private void setupClickListeners() {
@@ -180,11 +244,37 @@ public class CreateBookingActivity extends AppCompatActivity {
             }
         });
 
-        // Station selection click listener
-        findViewById(R.id.station_selection_card).setOnClickListener(v -> {
+        // Station selection click listener - try both the card and its contents
+        View stationSelectionCard = findViewById(R.id.station_selection_card);
+        View tvSelectedStation = findViewById(R.id.tv_selected_station);
+        View tvStationAddress = findViewById(R.id.tv_station_address);
+        
+        // Define the click action
+        View.OnClickListener stationClickListener = v -> {
+            android.util.Log.d("CreateBookingActivity", "Station selection clicked from: " + v.getClass().getSimpleName());
+            Toast.makeText(this, "Opening station selection...", Toast.LENGTH_SHORT).show();
+            
             Intent intent = new Intent(CreateBookingActivity.this, StationSelectionActivity.class);
             startActivityForResult(intent, STATION_SELECTION_REQUEST);
-        });
+        };
+        
+        if (stationSelectionCard != null) {
+            android.util.Log.d("CreateBookingActivity", "Setting click listener on station selection card");
+            stationSelectionCard.setOnClickListener(stationClickListener);
+        } else {
+            android.util.Log.e("CreateBookingActivity", "Station selection card NOT FOUND!");
+        }
+        
+        // Also set click listeners on the text views as backup
+        if (tvSelectedStation != null) {
+            android.util.Log.d("CreateBookingActivity", "Setting click listener on selected station text");
+            tvSelectedStation.setOnClickListener(stationClickListener);
+        }
+        
+        if (tvStationAddress != null) {
+            android.util.Log.d("CreateBookingActivity", "Setting click listener on station address text");
+            tvStationAddress.setOnClickListener(stationClickListener);
+        }
     }
 
 //    private boolean validateForm() {
@@ -211,45 +301,89 @@ public class CreateBookingActivity extends AppCompatActivity {
     private void proceedToSummary() {
         Vehicle selectedVehicle = vehicleAdapter.getSelectedVehicle();
         if (selectedVehicle == null) {
-            // Make sure a vehicle is selected
+            Toast.makeText(this, "Please select a vehicle", Toast.LENGTH_SHORT).show();
             return;
         }
 
         // Extract input values
-        String bookingDateStr = etBookingDate.getText().toString();
-        String bookingTimeStr = etBookingTime.getText().toString();
         String durationStr = etDuration.getText().toString();
+        if (durationStr.isEmpty()) {
+            Toast.makeText(this, "Please select duration", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        int duration = Integer.parseInt(durationStr); // minutes
-        double chargingRate = 50.0; // example rate per minute
-        double totalCost = duration * chargingRate;
+        // Parse duration from string (e.g., "90 minutes" -> 90)
+        int duration;
+        try {
+            duration = Integer.parseInt(durationStr.split(" ")[0]);
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Invalid duration format", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        // Use selected station data
-        String stationId = selectedStationId;
-        String stationName = selectedStationName;
-        String stationAddress = selectedStationAddress;
+        // Show progress
+        btnContinue.setEnabled(false);
+        btnContinue.setText("Creating booking...");
 
-        // Create a Booking object
-        Booking booking = new Booking(
-                "USER001", // Replace with actual logged-in userId
-                stationId,
-                stationName,
-                stationAddress,
-                selectedDate.getTime(),  // reservation date
-                selectedDate.getTime(),  // reservation time (same Calendar)
-                duration,
-                totalCost
+        // Create booking via API
+        bookingService.createBooking(
+            selectedStationId,
+            selectedDate.getTime(),
+            duration,
+            "", // No notes for now
+            new BookingService.BookingCallback() {
+                @Override
+                public void onSuccess(com.ead.zap.api.services.BookingApiService.BookingResponseDTO bookingResponse) {
+                    runOnUiThread(() -> {
+                        // Convert API response to Booking object for summary
+                        Booking booking = new Booking();
+                        booking.setBookingId(bookingResponse.getId());
+                        booking.setUserId(bookingResponse.getEvOwnerNIC());
+                        booking.setStationName(bookingResponse.getChargingStationName());
+                        booking.setStationId(selectedStationId);
+                        booking.setStationAddress(selectedStationAddress);
+                        booking.setReservationDate(selectedDate.getTime());
+                        booking.setReservationTime(selectedDate.getTime());
+                        booking.setDuration(bookingResponse.getDurationMinutes());
+                        booking.setTotalCost(bookingResponse.getTotalAmount());
+                        booking.setStatusFromString(bookingResponse.getStatus());
+                        booking.setQrCode(bookingResponse.getQrCode());
+
+                        // Pass booking to summary activity
+                        Intent intent = new Intent(CreateBookingActivity.this, BookingSummaryActivity.class);
+                        intent.putExtra("booking", booking);
+                        startActivity(intent);
+                        
+                        // Reset button state
+                        btnContinue.setEnabled(true);
+                        btnContinue.setText("Continue");
+                        
+                        finish(); // Close this activity
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(CreateBookingActivity.this, 
+                            "Failed to create booking: " + error, 
+                            Toast.LENGTH_LONG).show();
+                        
+                        // Reset button state
+                        btnContinue.setEnabled(true);
+                        btnContinue.setText("Continue");
+                    });
+                }
+            }
         );
-
-        // Pass booking to summary activity
-        Intent intent = new Intent(this, BookingSummaryActivity.class);
-        intent.putExtra("booking", booking);
-        startActivity(intent);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        
+        android.util.Log.d("CreateBookingActivity", "onActivityResult - requestCode: " + requestCode + 
+                          ", resultCode: " + resultCode + ", data: " + (data != null ? "present" : "null"));
         
         if (requestCode == STATION_SELECTION_REQUEST && resultCode == RESULT_OK && data != null) {
             // Get selected station data
@@ -259,19 +393,60 @@ public class CreateBookingActivity extends AppCompatActivity {
             selectedStationPrice = data.getDoubleExtra("selected_station_price", 0.0);
             selectedStationAvailableSlots = data.getIntExtra("selected_station_available_slots", 0);
             
+            android.util.Log.d("CreateBookingActivity", "Station selected: " + selectedStationName + 
+                              " (ID: " + selectedStationId + ")");
+            
             // Update UI with selected station
             updateSelectedStationUI();
+            
+            Toast.makeText(this, "Station selected: " + selectedStationName, Toast.LENGTH_SHORT).show();
         }
     }
 
     private void updateSelectedStationUI() {
         if (selectedStationName != null) {
+            android.util.Log.d("CreateBookingActivity", "Updating UI with selected station: " + selectedStationName);
+            
             tvSelectedStation.setText(selectedStationName);
-            tvStationAddress.setText(selectedStationAddress);
+            tvStationAddress.setText(selectedStationAddress != null ? selectedStationAddress : "No address available");
             tvChargingRate.setText(String.format("Rs. %.2f / hour", selectedStationPrice));
+            
+            // Make sure the views are visible
+            tvSelectedStation.setVisibility(View.VISIBLE);
+            tvStationAddress.setVisibility(View.VISIBLE);
+            tvChargingRate.setVisibility(View.VISIBLE);
+            
+            // Update cost calculation with new station price
+            updateCostCalculation();
             
             // Enable continue button if station is selected
             updateContinueButton();
+        }
+    }
+
+    private void updateCostCalculation() {
+        if (selectedStationPrice > 0 && !etDuration.getText().toString().isEmpty()) {
+            try {
+                // Extract duration from string (e.g., "90 minutes" -> 90)
+                String durationStr = etDuration.getText().toString();
+                int durationMinutes = Integer.parseInt(durationStr.split(" ")[0]);
+                
+                // Calculate cost: (duration in hours) * price per hour
+                double durationHours = durationMinutes / 60.0;
+                double estimatedCost = durationHours * selectedStationPrice;
+                
+                // Update UI
+                tvEstimatedCost.setText(String.format("Rs. %.2f", estimatedCost));
+                tvEstimatedCost.setVisibility(View.VISIBLE);
+                
+                android.util.Log.d("CreateBookingActivity", 
+                    "Cost calculated: " + durationMinutes + " minutes at Rs." + selectedStationPrice + "/hr = Rs." + estimatedCost);
+            } catch (Exception e) {
+                android.util.Log.e("CreateBookingActivity", "Error calculating cost: " + e.getMessage());
+                tvEstimatedCost.setText("Cost calculation error");
+            }
+        } else {
+            tvEstimatedCost.setText("Select station and duration");
         }
     }
 

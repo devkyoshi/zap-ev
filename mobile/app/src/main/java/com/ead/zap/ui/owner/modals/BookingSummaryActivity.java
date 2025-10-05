@@ -101,7 +101,7 @@ public class BookingSummaryActivity extends AppCompatActivity {
         // Here you would typically make an API call to confirm the booking
         // For now, we'll simulate a successful booking confirmation
         
-        booking.setStatus("PENDING");
+        booking.setStatusFromString("PENDING");
         booking.setBookingId("BOOK" + System.currentTimeMillis());
         
         // Navigate to QR Code screen after successful booking

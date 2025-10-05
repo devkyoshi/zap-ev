@@ -70,6 +70,9 @@ public class AuthService {
                         // Save authentication data
                         saveAuthData(authResponse);
                         
+                        // Save the NIC for EV Owner (needed for API calls)
+                        preferenceManager.setUserNIC(nic);
+                        
                         Log.d(TAG, "EV Owner login successful");
                         callback.onSuccess(authResponse);
                     } else {

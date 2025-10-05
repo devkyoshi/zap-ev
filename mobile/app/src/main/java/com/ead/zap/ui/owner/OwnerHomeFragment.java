@@ -14,8 +14,11 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.ead.zap.R;
+import com.ead.zap.models.Booking;
+import com.ead.zap.models.BookingStatus;
 import com.ead.zap.models.ChargingStation;
 import com.ead.zap.models.ProfileResponse;
+import com.ead.zap.services.BookingService;
 import com.ead.zap.services.ChargingStationService;
 import com.ead.zap.services.LocationService;
 import com.ead.zap.services.ProfileService;
@@ -28,15 +31,16 @@ import java.util.List;
 public class OwnerHomeFragment extends Fragment {
     private static final String TAG = "OwnerHomeFragment";
 
-    private TextView tvWelcomeText, tvPendingCount, tvApprovedCount, 
-                    tvUpcomingReservation, tvNearbyStationsCount;
+    private TextView tvWelcomeText, tvPendingCount, tvApprovedCount, tvNearbyStationsCount;
     private MaterialCardView cardQuickCharge, cardHistory, cardUpcomingReservation;
+    private TextView tvUpcomingStatus, tvUpcomingStationName, tvUpcomingAddress, tvUpcomingTime;
     
     // Services
     private ProfileService profileService;
     private PreferenceManager preferenceManager;
     private ChargingStationService chargingStationService;
     private LocationService locationService;
+    private BookingService bookingService;
 
     public OwnerHomeFragment() {
         // Required empty public constructor
@@ -68,6 +72,7 @@ public class OwnerHomeFragment extends Fragment {
             preferenceManager = new PreferenceManager(getContext());
             chargingStationService = new ChargingStationService(getContext());
             locationService = new LocationService(getContext());
+            bookingService = new BookingService(getContext());
         }
     }
 
@@ -80,8 +85,14 @@ public class OwnerHomeFragment extends Fragment {
             cardHistory = view.findViewById(R.id.cardHistory);
             cardUpcomingReservation = view.findViewById(R.id.cardUpcomingReservation);
             
-            // Find the existing views in the layout
-            tvUpcomingReservation = view.findViewById(R.id.reservationDetails);
+            // Find TextViews for upcoming reservation card
+            tvUpcomingStatus = view.findViewById(R.id.tv_upcoming_status);
+            tvUpcomingStationName = view.findViewById(R.id.tv_upcoming_station_name);
+            tvUpcomingAddress = view.findViewById(R.id.tv_upcoming_address);
+            tvUpcomingTime = view.findViewById(R.id.tv_upcoming_time);
+            
+            // Find TextView for nearby stations count
+            tvNearbyStationsCount = view.findViewById(R.id.tv_nearby_stations_count);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -99,10 +110,11 @@ public class OwnerHomeFragment extends Fragment {
         // History action - switch to bookings tab
         if (cardHistory != null) {
             cardHistory.setOnClickListener(v -> {
-                // Switch to bookings tab in the main activity
+                // Navigate to bookings tab
                 if (getActivity() instanceof EVOwnerMain) {
-                    // This would require a method in EVOwnerMain to switch tabs
-                    // For now, we'll just show a message
+                    Intent intent = new Intent(getActivity(), EVOwnerMain.class);
+                    intent.putExtra("open_bookings_tab", true);
+                    startActivity(intent);
                 }
             });
         }
@@ -110,8 +122,15 @@ public class OwnerHomeFragment extends Fragment {
         // Upcoming reservation card click
         if (cardUpcomingReservation != null) {
             cardUpcomingReservation.setOnClickListener(v -> {
-                // Navigate to booking details or bookings list
-                // Switch to bookings tab
+                // Navigate to bookings tab to show all bookings
+                if (getActivity() instanceof EVOwnerMain) {
+                    EVOwnerMain mainActivity = (EVOwnerMain) getActivity();
+                    // The bottom navigation will handle the fragment switching
+                    // We can trigger this by sending an intent or using a public method
+                    Intent intent = new Intent(getActivity(), EVOwnerMain.class);
+                    intent.putExtra("open_bookings_tab", true);
+                    startActivity(intent);
+                }
             });
         }
     }
@@ -196,34 +215,202 @@ public class OwnerHomeFragment extends Fragment {
     }
 
     private void loadReservationCounts() {
-        // Mock data for pending and approved reservations
-        // In a real app, these would come from the database
-        
-        int pendingCount = 2;
-        int approvedCount = 3;
-        
-        // Update the count displays
+        if (bookingService == null) {
+            Log.e(TAG, "BookingService is null");
+            return;
+        }
+
+        // Set loading state
         if (tvPendingCount != null) {
-            tvPendingCount.setText(String.valueOf(pendingCount));
+            tvPendingCount.setText("...");
         }
-        
         if (tvApprovedCount != null) {
-            tvApprovedCount.setText(String.valueOf(approvedCount));
+            tvApprovedCount.setText("...");
         }
+
+        // Get all bookings to calculate counts
+        bookingService.getAllBookings(new BookingService.BookingListCallback() {
+            @Override
+            public void onSuccess(List<Booking> bookings) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        // Calculate counts by status
+                        int pendingCount = 0;
+                        int approvedCount = 0;
+                        int inProgressCount = 0;
+                        int completedCount = 0;
+                        int cancelledCount = 0;
+                        
+                        Log.d(TAG, "Processing " + bookings.size() + " bookings for status counts");
+                        
+                        for (Booking booking : bookings) {
+                            BookingStatus status = booking.getStatus();
+                            Log.d(TAG, "Booking ID: " + booking.getBookingId() + 
+                                      ", Status: " + status + 
+                                      " (" + booking.getStatusString() + ")");
+                            
+                            switch (status) {
+                                case PENDING:
+                                    pendingCount++;
+                                    break;
+                                case APPROVED:
+                                    approvedCount++;
+                                    break;
+                                case IN_PROGRESS:
+                                    inProgressCount++;
+                                    break;
+                                case COMPLETED:
+                                    completedCount++;
+                                    break;
+                                case CANCELLED:
+                                case NO_SHOW:
+                                    cancelledCount++;
+                                    break;
+                            }
+                        }
+                        
+                        Log.d(TAG, "Status counts - Pending: " + pendingCount + 
+                                   ", Approved: " + approvedCount + 
+                                   ", In Progress: " + inProgressCount + 
+                                   ", Completed: " + completedCount + 
+                                   ", Cancelled/No-show: " + cancelledCount);
+                        
+                        // Update the count displays
+                        if (tvPendingCount != null) {
+                            tvPendingCount.setText(String.valueOf(pendingCount));
+                        }
+                        
+                        if (tvApprovedCount != null) {
+                            tvApprovedCount.setText(String.valueOf(approvedCount));
+                        }
+                        
+                        Log.d(TAG, "Loaded booking counts - Pending: " + pendingCount + ", Approved: " + approvedCount);
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Log.e(TAG, "Failed to load booking counts: " + errorMessage);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        // Set counts to 0 on error
+                        if (tvPendingCount != null) {
+                            tvPendingCount.setText("0");
+                        }
+                        if (tvApprovedCount != null) {
+                            tvApprovedCount.setText("0");
+                        }
+                    });
+                }
+            }
+        });
     }
 
     private void loadUpcomingReservation() {
-        // Mock data for the next upcoming reservation
-        // This updates the reservation card shown in the layout
+        if (bookingService == null) {
+            Log.e(TAG, "BookingService is null");
+            hideUpcomingReservationCard();
+            return;
+        }
+
+        // Show loading state
+        if (tvUpcomingStationName != null) {
+            tvUpcomingStationName.setText("Loading...");
+        }
+
+        // Get upcoming bookings to find the next one
+        bookingService.getUpcomingBookings(new BookingService.BookingListCallback() {
+            @Override
+            public void onSuccess(List<Booking> bookings) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (bookings != null && !bookings.isEmpty()) {
+                            // Show the first upcoming booking
+                            Booking nextBooking = bookings.get(0);
+                            displayUpcomingReservation(nextBooking);
+                        } else {
+                            // No upcoming reservations
+                            hideUpcomingReservationCard();
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Log.e(TAG, "Failed to load upcoming reservations: " + errorMessage);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        hideUpcomingReservationCard();
+                    });
+                }
+            }
+        });
+    }
+
+    private void displayUpcomingReservation(Booking booking) {
+        if (tvUpcomingStatus != null) {
+            tvUpcomingStatus.setText(booking.getStatusString());
+            
+            // Set status color based on booking status
+            int colorRes;
+            switch (booking.getStatus()) {
+                case PENDING:
+                    colorRes = R.color.amber_600;
+                    break;
+                case APPROVED:
+                    colorRes = R.color.primary_light;
+                    break;
+                case IN_PROGRESS:
+                    colorRes = R.color.primary_dark;
+                    break;
+                default:
+                    colorRes = R.color.gray_600;
+            }
+            tvUpcomingStatus.setTextColor(getResources().getColor(colorRes, null));
+        }
         
-        // The existing layout already shows static data
-        // In a real app, this would be replaced with dynamic data
+        if (tvUpcomingStationName != null) {
+            tvUpcomingStationName.setText(booking.getStationName() != null ? booking.getStationName() : "Station");
+        }
+        
+        if (tvUpcomingAddress != null) {
+            tvUpcomingAddress.setText(booking.getStationAddress() != null ? booking.getStationAddress() : "Address not available");
+        }
+        
+        if (tvUpcomingTime != null) {
+            String timeText = booking.getDate() + ", " + booking.getTime();
+            if (booking.getDuration() > 0) {
+                timeText += " (" + booking.getDuration() + " min)";
+            }
+            tvUpcomingTime.setText(timeText);
+        }
+        
+        // Show the reservation card
+        if (cardUpcomingReservation != null) {
+            cardUpcomingReservation.setVisibility(View.VISIBLE);
+        }
+        
+        Log.d(TAG, "Displayed upcoming reservation: " + booking.getStationName());
+    }
+
+    private void hideUpcomingReservationCard() {
+        if (cardUpcomingReservation != null) {
+            cardUpcomingReservation.setVisibility(View.GONE);
+        }
+        Log.d(TAG, "No upcoming reservations to display");
     }
 
     private void loadNearbyStationsCount() {
         if (locationService == null || chargingStationService == null) {
             Log.e(TAG, "Services not initialized");
             return;
+        }
+
+        // Show loading state
+        if (tvNearbyStationsCount != null) {
+            tvNearbyStationsCount.setText("Loading...");
         }
 
         // Try to get location and nearby stations
@@ -296,17 +483,12 @@ public class OwnerHomeFragment extends Fragment {
     }
 
     private void updateNearbyStationsCount(int stationCount) {
-        // Update the text overlay on the nearby stations map image
-        // Note: The layout currently shows this as a static overlay on the image
-        // You may want to find the TextView in the layout that shows this count
-        // and update it dynamically
-        
         Log.d(TAG, "Found " + stationCount + " nearby stations");
         
-        // If you have a TextView for showing the count, update it here:
-        // if (tvNearbyStationsCount != null) {
-        //     tvNearbyStationsCount.setText(stationCount + " stations nearby");
-        // }
+        if (tvNearbyStationsCount != null) {
+            String countText = stationCount + " stations within 5 km";
+            tvNearbyStationsCount.setText(countText);
+        }
     }
 
     @Override

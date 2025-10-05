@@ -13,7 +13,7 @@ public class Booking implements Serializable {
     private Date reservationTime;
     private int duration; // in minutes
     private double totalCost;
-    private String status; // PENDING, APPROVED, CANCELLED, COMPLETED
+    private BookingStatus status = BookingStatus.PENDING;
     private String qrCode;
     private Date createdAt;
     private Date updatedAt;
@@ -33,7 +33,7 @@ public class Booking implements Serializable {
         this.reservationTime = reservationTime;
         this.duration = duration;
         this.totalCost = totalCost;
-        this.status = "PENDING";
+        this.status = BookingStatus.valueOf("PENDING");
         this.createdAt = new Date();
     }
 
@@ -65,8 +65,17 @@ public class Booking implements Serializable {
     public double getTotalCost() { return totalCost; }
     public void setTotalCost(double totalCost) { this.totalCost = totalCost; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public BookingStatus getStatus() { return status; }
+    public void setStatus(BookingStatus status) { this.status = status; }
+    
+    // Convenience methods for backward compatibility and API integration
+    public String getStatusString() { return status.getDisplayName(); }
+    public void setStatusFromString(String statusString) { 
+        this.status = BookingStatus.fromString(statusString); 
+    }
+    public void setStatusFromInt(int statusValue) { 
+        this.status = BookingStatus.fromValue(statusValue); 
+    }
 
     public String getQrCode() { return qrCode; }
     public void setQrCode(String qrCode) { this.qrCode = qrCode; }
@@ -94,26 +103,43 @@ public class Booking implements Serializable {
 
     // Check if booking can be modified (at least 12 hours before)
     public boolean canBeModified() {
+        if (reservationTime == null) {
+            android.util.Log.d("Booking", "Cannot modify - reservationTime is null");
+            return false;
+        }
+        
+        long currentTime = System.currentTimeMillis();
+        long bookingTime = reservationTime.getTime();
+        long twelveHoursInMs = 12 * 60 * 60 * 1000;
+        long timeDiff = bookingTime - currentTime;
+        
+        boolean timeAllows = timeDiff > twelveHoursInMs;
+        boolean statusAllows = status.canBeModified();
+        
+        android.util.Log.d("Booking", "canBeModified - Time diff: " + (timeDiff / (60 * 60 * 1000)) + 
+                          " hours, Status: " + status.getDisplayName() + ", TimeAllows: " + timeAllows + 
+                          ", StatusAllows: " + statusAllows);
+        
+        return timeAllows && statusAllows;
+    }
+
+    // Check if booking can be cancelled (at least 12 hours before)
+    public boolean canBeCancelled() {
         if (reservationTime == null) return false;
         
         long currentTime = System.currentTimeMillis();
         long bookingTime = reservationTime.getTime();
         long twelveHoursInMs = 12 * 60 * 60 * 1000;
+        long timeDiff = bookingTime - currentTime;
         
-        return (bookingTime - currentTime) > twelveHoursInMs && 
-               ("PENDING".equals(status) || "APPROVED".equals(status));
-    }
-
-    // Check if booking can be cancelled (at least 12 hours before)
-    public boolean canBeCancelled() {
-        return canBeModified(); // Same logic as modification
+        return (timeDiff > twelveHoursInMs) && status.canBeCancelled();
     }
 
     // Check if QR code can be shown (approved and within access window)
     public boolean canShowQRCode() {
-        // For now, show QR code for all APPROVED bookings to make testing easier
-        // In production, you can add time restrictions as needed
-        return "APPROVED".equals(status);
+        boolean canShow = status.canShowQRCode();
+        android.util.Log.d("Booking", "canShowQRCode - Status: " + status.getDisplayName() + ", CanShow: " + canShow);
+        return canShow;
         
         /* Production logic with time restrictions:
         if (!"APPROVED".equals(status)) return false;

@@ -13,6 +13,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.ead.zap.R;
 import com.ead.zap.models.Booking;
+import com.ead.zap.services.BookingService;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
@@ -27,6 +28,7 @@ public class ModifyReservationActivity extends AppCompatActivity {
                     tvOriginalDuration, tvChargingRate, tvEstimatedCost;
     private Button btnCancel, btnSaveChanges;
     private Booking booking;
+    private BookingService bookingService;
 
     private Calendar selectedDate = Calendar.getInstance();
     private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
@@ -37,6 +39,8 @@ public class ModifyReservationActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_modify_reservation);
 
+        bookingService = new BookingService(this);
+        
         setupToolbar();
         initViews();
         loadBookingData();
@@ -209,30 +213,54 @@ public class ModifyReservationActivity extends AppCompatActivity {
             return;
         }
 
-        // Update booking with new details
+        // Disable button to prevent multiple clicks
+        btnSaveChanges.setEnabled(false);
+        btnSaveChanges.setText("Saving...");
+
         String durationStr = etDuration.getText().toString().trim();
         int newDuration = Integer.parseInt(durationStr);
-        
-        // Calculate new cost
-        double ratePerMinute = booking.getTotalCost() / booking.getDuration();
-        double newTotalCost = newDuration * ratePerMinute;
 
-        booking.setReservationDate(selectedDate.getTime());
-        booking.setReservationTime(selectedDate.getTime());
-        booking.setDuration(newDuration);
-        booking.setTotalCost(newTotalCost);
-        booking.setUpdatedAt(new Date());
-        booking.setStatus("PENDING"); // Reset to pending after modification
+        // Call the booking service to update the booking
+        bookingService.updateBooking(
+            booking.getBookingId(),
+            selectedDate.getTime(),
+            newDuration,
+            "", // No notes for now
+            new BookingService.BookingCallback() {
+                @Override
+                public void onSuccess(com.ead.zap.api.services.BookingApiService.BookingResponseDTO bookingResponse) {
+                    runOnUiThread(() -> {
+                        // Update local booking object with new data
+                        booking.setReservationDate(selectedDate.getTime());
+                        booking.setReservationTime(selectedDate.getTime());
+                        booking.setDuration(bookingResponse.getDurationMinutes());
+                        booking.setTotalCost(bookingResponse.getTotalAmount());
+                        booking.setStatusFromString(bookingResponse.getStatus());
+                        booking.setUpdatedAt(new Date());
 
-        // Here you would typically make an API call to update the booking
-        // For now, we'll simulate a successful update
-        
-        Intent resultIntent = new Intent();
-        resultIntent.putExtra("modified_booking", booking);
-        setResult(RESULT_OK, resultIntent);
-        
-        Toast.makeText(this, "Booking updated successfully!", Toast.LENGTH_SHORT).show();
-        finish();
+                        Intent resultIntent = new Intent();
+                        resultIntent.putExtra("modified_booking", booking);
+                        setResult(RESULT_OK, resultIntent);
+                        
+                        Toast.makeText(ModifyReservationActivity.this, 
+                            "Booking updated successfully!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(ModifyReservationActivity.this, 
+                            "Failed to update booking: " + error, Toast.LENGTH_LONG).show();
+                        
+                        // Re-enable button
+                        btnSaveChanges.setEnabled(true);
+                        btnSaveChanges.setText("Save Changes");
+                    });
+                }
+            }
+        );
     }
 
     private boolean validateForm() {

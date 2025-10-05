@@ -38,6 +38,7 @@ namespace EVChargingStationAPI.Models.DTOs
     {
         public string Id { get; set; } = string.Empty;
         public string EVOwnerNIC { get; set; } = string.Empty;
+        public string ChargingStationId { get; set; } = string.Empty;
         public string ChargingStationName { get; set; } = string.Empty;
         public DateTime ReservationDateTime { get; set; }
         public int DurationMinutes { get; set; }

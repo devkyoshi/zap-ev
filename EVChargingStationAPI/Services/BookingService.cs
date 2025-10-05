@@ -114,6 +114,7 @@ namespace EVChargingStationAPI.Services
                 {
                     Id = booking.Id,
                     EVOwnerNIC = booking.EVOwnerNIC,
+                    ChargingStationId = chargingStation.Id,
                     ChargingStationName = chargingStation.Name,
                     ReservationDateTime = booking.ReservationDateTime,
                     DurationMinutes = booking.DurationMinutes,

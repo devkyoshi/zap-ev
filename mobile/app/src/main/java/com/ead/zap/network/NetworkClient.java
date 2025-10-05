@@ -42,6 +42,9 @@ public class NetworkClient {
 
         // Add authentication interceptor
         httpClient.addInterceptor(new AuthInterceptor());
+        
+        // Add response interceptor to handle common errors
+        httpClient.addInterceptor(new ResponseInterceptor());
 
         // Add logging interceptor for debugging (only in debug mode)
         if (ApiConfig.isDebugMode()) {

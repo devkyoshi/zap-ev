@@ -202,6 +202,7 @@
                     android:gravity="center_vertical">
 
                     <TextView
+                        android:id="@+id/tv_upcoming_status"
                         android:text="@string/pending"
                         android:textColor="@color/amber_600"
                         android:textSize="14sp"
@@ -210,6 +211,7 @@
                         android:layout_height="wrap_content"/>
 
                     <TextView
+                        android:id="@+id/tv_upcoming_station_name"
                         android:text="Station A"
                         android:textColor="@color/black"
                         android:textSize="16sp"
@@ -219,6 +221,7 @@
                         android:layout_marginTop="4dp" />
 
                     <TextView
+                        android:id="@+id/tv_upcoming_address"
                         android:text="123 Main St, Anytown"
                         android:textColor="@color/accent"
                         android:textSize="14sp"
@@ -227,6 +230,7 @@
                         android:layout_marginTop="2dp" />
 
                     <TextView
+                        android:id="@+id/tv_upcoming_time"
                         android:text="Tomorrow, 2:00 PM - 4:00 PM"
                         android:textSize="12sp"
                         android:layout_width="wrap_content"
@@ -293,6 +297,7 @@
                     app:shapeAppearanceOverlay="@drawable/bg_round_image" />
 
                 <TextView
+                    android:id="@+id/tv_nearby_stations_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="5 stations within 5 km"
