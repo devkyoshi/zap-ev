@@ -4,23 +4,29 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
 
 import com.ead.zap.R;
+import com.ead.zap.services.OperatorService;
 
 public class BookingVerificationActivity extends AppCompatActivity {
 
     private TextView tvBookingId, tvCustomerName, tvStationId, tvSlotNumber, tvStartTime, tvEndTime;
     private Button btnStartSession, btnReject;
     private CardView cardBookingDetails;
+    private OperatorService operatorService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_booking_verification);
+
+        // Initialize services
+        operatorService = new OperatorService(this);
 
         initViews();
         setupToolbar();
@@ -68,21 +74,53 @@ public class BookingVerificationActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         btnStartSession.setOnClickListener(v -> {
-            Intent intent = new Intent(BookingVerificationActivity.this, FinalizeSessionActivity.class);
-            // Pass booking details to the finalize session activity
-            intent.putExtra("booking_id", tvBookingId.getText().toString());
-            intent.putExtra("customer_name", tvCustomerName.getText().toString());
-            intent.putExtra("station_id", tvStationId.getText().toString());
-            intent.putExtra("slot_number", tvSlotNumber.getText().toString());
-            intent.putExtra("start_time", tvStartTime.getText().toString());
-            intent.putExtra("end_time", tvEndTime.getText().toString());
-            startActivity(intent);
-            finish();
+            startBookingSession();
         });
 
         btnReject.setOnClickListener(v -> {
             // Handle rejection logic here
+            Toast.makeText(this, "Booking rejected", Toast.LENGTH_SHORT).show();
             finish();
+        });
+    }
+
+    private void startBookingSession() {
+        String bookingId = tvBookingId.getText().toString();
+        
+        // Disable button to prevent multiple clicks
+        btnStartSession.setEnabled(false);
+        btnStartSession.setText("Starting...");
+        
+        operatorService.startBookingSession(bookingId, new OperatorService.BookingOperationCallback() {
+            @Override
+            public void onSuccess(String message) {
+                runOnUiThread(() -> {
+                    Toast.makeText(BookingVerificationActivity.this, message, Toast.LENGTH_SHORT).show();
+                    
+                    // Navigate to finalize session activity
+                    Intent intent = new Intent(BookingVerificationActivity.this, FinalizeSessionActivity.class);
+                    intent.putExtra("booking_id", bookingId);
+                    intent.putExtra("customer_name", tvCustomerName.getText().toString());
+                    intent.putExtra("station_id", tvStationId.getText().toString());
+                    intent.putExtra("slot_number", tvSlotNumber.getText().toString());
+                    intent.putExtra("start_time", tvStartTime.getText().toString());
+                    intent.putExtra("end_time", tvEndTime.getText().toString());
+                    startActivity(intent);
+                    finish();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(BookingVerificationActivity.this, 
+                        "Failed to start session: " + error, Toast.LENGTH_LONG).show();
+                    
+                    // Re-enable button
+                    btnStartSession.setEnabled(true);
+                    btnStartSession.setText("Start Session");
+                });
+            }
         });
     }
 

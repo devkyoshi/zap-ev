@@ -13,6 +13,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
 
 import com.ead.zap.R;
+import com.ead.zap.services.OperatorService;
 import com.ead.zap.ui.operator.StationOperatorMain;
 
 public class FinalizeSessionActivity extends AppCompatActivity {
@@ -22,6 +23,7 @@ public class FinalizeSessionActivity extends AppCompatActivity {
     private Button btnFinalizeSession;
     private ProgressBar progressBarCharging;
     private CardView cardSessionDetails;
+    private OperatorService operatorService;
 
     private Handler handler = new Handler();
     private int simulatedProgress = 0;
@@ -31,6 +33,9 @@ public class FinalizeSessionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_finalize_session);
+
+        // Initialize services
+        operatorService = new OperatorService(this);
 
         initViews();
         setupToolbar();
@@ -128,14 +133,40 @@ public class FinalizeSessionActivity extends AppCompatActivity {
 
     private void finalizeChargingSession() {
         isSessionActive = false;
+        String bookingId = tvBookingId.getText().toString();
         
-        Toast.makeText(this, "Charging session completed successfully!", Toast.LENGTH_LONG).show();
+        // Disable button to prevent multiple clicks
+        btnFinalizeSession.setEnabled(false);
+        btnFinalizeSession.setText("Completing...");
         
-        // Navigate back to main operator screen
-        Intent intent = new Intent(FinalizeSessionActivity.this, StationOperatorMain.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
+        operatorService.completeBookingSession(bookingId, new OperatorService.BookingOperationCallback() {
+            @Override
+            public void onSuccess(String message) {
+                runOnUiThread(() -> {
+                    Toast.makeText(FinalizeSessionActivity.this, 
+                        "Session completed successfully!", Toast.LENGTH_LONG).show();
+                    
+                    // Navigate back to main operator screen
+                    Intent intent = new Intent(FinalizeSessionActivity.this, StationOperatorMain.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(FinalizeSessionActivity.this, 
+                        "Failed to complete session: " + error, Toast.LENGTH_LONG).show();
+                    
+                    // Re-enable button
+                    btnFinalizeSession.setEnabled(true);
+                    btnFinalizeSession.setText("Complete Session");
+                    isSessionActive = true;
+                });
+            }
+        });
     }
 
     @Override

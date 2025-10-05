@@ -9,6 +9,7 @@ public class AuthResponse {
     private String accessToken;
     private String refreshToken;
     private String userType;
+    private String role;
     private String userId;
     private Date accessTokenExpiresAt;
     private Date refreshTokenExpiresAt;
@@ -37,6 +38,14 @@ public class AuthResponse {
 
     public void setUserType(String userType) {
         this.userType = userType;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getUserId() {
@@ -83,8 +92,9 @@ public class AuthResponse {
      * Check if user is EV Owner
      */
     public boolean isEVOwner() {
-        boolean result = "EVOwner".equalsIgnoreCase(userType);
-        System.out.println("DEBUG: isEVOwner() - userType: '" + userType + "' -> " + result);
+        // Check both role and userType for compatibility
+        boolean result = "EVOwner".equalsIgnoreCase(role) || "EVOwner".equalsIgnoreCase(userType);
+        System.out.println("DEBUG: isEVOwner() - role: '" + role + "', userType: '" + userType + "' -> " + result);
         return result;
     }
 
@@ -92,13 +102,16 @@ public class AuthResponse {
      * Check if user is BackOffice (should not use mobile app)
      */
     public boolean isBackOffice() {
-        return "BackOffice".equalsIgnoreCase(userType);
+        // BackOffice users should use web interface, not mobile app
+        return "BackOffice".equalsIgnoreCase(role);
     }
 
     /**
      * Check if user is StationOperator
      */
     public boolean isStationOperator() {
-        return "StationOperator".equalsIgnoreCase(userType);
+        boolean result = "StationOperator".equalsIgnoreCase(role);
+        System.out.println("DEBUG: isStationOperator() - role: '" + role + "', userType: '" + userType + "' -> " + result);
+        return result;
     }
 }

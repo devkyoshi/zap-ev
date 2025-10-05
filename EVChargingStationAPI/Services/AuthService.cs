@@ -84,6 +84,7 @@ namespace EVChargingStationAPI.Services
                         AccessToken = accessToken,
                         RefreshToken = refreshToken,
                         UserType = "User",
+                        Role = user.Role.ToString(),
                         UserId = user.Id,
                         AccessTokenExpiresAt = accessTokenExpiry,
                         RefreshTokenExpiresAt = refreshTokenExpiry
@@ -147,6 +148,7 @@ namespace EVChargingStationAPI.Services
                         AccessToken = accessToken,
                         RefreshToken = refreshToken,
                         UserType = "EVOwner",
+                        Role = "EVOwner",
                         UserId = evOwner.Id,
                         AccessTokenExpiresAt = accessTokenExpiry,
                         RefreshTokenExpiresAt = refreshTokenExpiry
@@ -238,6 +240,7 @@ namespace EVChargingStationAPI.Services
                         AccessToken = newAccessToken,
                         RefreshToken = newRefreshToken,
                         UserType = session.UserType,
+                        Role = role,
                         UserId = session.UserId,
                         AccessTokenExpiresAt = accessTokenExpiry,
                         RefreshTokenExpiresAt = refreshTokenExpiry

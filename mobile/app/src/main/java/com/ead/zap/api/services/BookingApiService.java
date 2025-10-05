@@ -84,11 +84,40 @@ public interface BookingApiService {
     );
 
     /**
+     * Get all bookings (for operators/admin)
+     * GET /api/bookings
+     */
+    @GET(ApiConfig.Bookings.BASE)
+    Call<ApiResponse<List<Booking>>> getAllBookings(
+        @Header("Authorization") String authToken
+    );
+
+    /**
+     * Start a booking session
+     * PATCH /api/bookings/{id}/start
+     */
+    @PATCH(ApiConfig.Bookings.BASE + "/{id}/start")
+    Call<ApiResponse<Object>> startBooking(
+        @Header("Authorization") String authToken,
+        @Path("id") String bookingId
+    );
+
+    /**
+     * Complete a booking session
+     * PATCH /api/bookings/{id}/complete
+     */
+    @PATCH(ApiConfig.Bookings.BASE + "/{id}/complete")
+    Call<ApiResponse<Object>> completeBooking(
+        @Header("Authorization") String authToken,
+        @Path("id") String bookingId
+    );
+
+    /**
      * Verify QR code for booking
      * POST /api/bookings/verify-qr
      */
     @POST(ApiConfig.Bookings.VERIFY_QR)
-    Call<ApiResponse<QRVerificationResponseDTO>> verifyQRCode(
+    Call<ApiResponse<BookingResponseDTO>> verifyQRCode(
         @Header("Authorization") String authToken,
         @Body QRVerificationRequest request
     );

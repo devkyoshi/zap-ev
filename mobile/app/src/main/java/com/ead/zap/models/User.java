@@ -81,6 +81,23 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
+    // Helper methods
+    public String getDisplayName() {
+        return username != null ? username : "User";
+    }
+
+    public boolean isStationOperator() {
+        return role == UserRole.STATIONOPERATOR;
+    }
+
+    public boolean isBackOffice() {
+        return role == UserRole.BACKOFFICE;
+    }
+
+    public String getRoleDisplayName() {
+        return role != null ? role.getDisplayName() : "Unknown";
+    }
+
     /**
      * User role enumeration
      */

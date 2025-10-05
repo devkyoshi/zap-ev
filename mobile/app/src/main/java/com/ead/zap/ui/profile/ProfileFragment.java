@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,8 +27,10 @@ import com.ead.zap.adapters.VehicleAdapter;
 import com.ead.zap.models.ProfileResponse;
 import com.ead.zap.models.ProfileUpdateRequest;
 import com.ead.zap.models.VehicleDetail;
+import com.ead.zap.models.User;
 import com.ead.zap.models.auth.AuthResponse;
 import com.ead.zap.services.AuthService;
+import com.ead.zap.services.OperatorProfileService;
 import com.ead.zap.services.ProfileService;
 import com.ead.zap.ui.auth.LoginActivity;
 import com.ead.zap.ui.owner.ReactivationInfoActivity;
@@ -53,9 +56,12 @@ public class ProfileFragment extends Fragment {
     
     private AuthService authService;
     private ProfileService profileService;
+    private OperatorProfileService operatorProfileService;
     private PreferenceManager preferenceManager;
     
     private ProfileResponse currentProfile;
+    private User currentOperatorProfile;
+    private boolean isOperator = false;
     private VehicleAdapter vehicleAdapter;
     private List<VehicleDetail> vehicleList;
     
@@ -66,6 +72,8 @@ public class ProfileFragment extends Fragment {
 
 
     private TextView profileName;
+    private LinearLayout vehicleInformationSection;
+    private TextView profileTitle, profileDescription;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -79,7 +87,11 @@ public class ProfileFragment extends Fragment {
         
         authService = new AuthService(requireContext());
         profileService = new ProfileService(requireContext());
+        operatorProfileService = new OperatorProfileService(requireContext());
         preferenceManager = new PreferenceManager(requireContext());
+        
+        // Determine user type from auth data
+        determineUserType();
         
         rootView = view;
         initViews(view);
@@ -103,12 +115,24 @@ public class ProfileFragment extends Fragment {
         recyclerViewVehicles = view.findViewById(R.id.recyclerViewVehicles);
         emptyVehicleState = view.findViewById(R.id.emptyVehicleState);
         profileName = view.findViewById(R.id.profileName);
-
-        // Make NIC field non-editable as it's the primary key
-        etNic.setEnabled(false);
+        profileTitle = view.findViewById(R.id.profileTitle);
+        profileDescription = view.findViewById(R.id.profileDescription);
         
-        // Setup vehicle list
-        setupVehicleList();
+        // Find vehicle information section (the LinearLayout containing the heading and add button)
+        vehicleInformationSection = findVehicleInformationSection(view);
+        profileTitle = view.findViewById(R.id.profileTitle);
+        profileDescription = view.findViewById(R.id.profileDescription);
+        
+        // Find vehicle information section (the LinearLayout containing the heading and add button)
+        vehicleInformationSection = findVehicleInformationSection(view);
+
+        // Configure UI based on user type
+        configureUIForUserType();
+        
+        // Setup vehicle list (only for EV Owners)
+        if (!isOperator) {
+            setupVehicleList();
+        }
     }
 
     private void setupVehicleList() {
@@ -284,18 +308,26 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadUserData() {
-        // First try to load cached data for immediate display
-        ProfileResponse cachedProfile = profileService.getCachedProfile();
-        if (cachedProfile != null) {
-            populateFields(cachedProfile);
-        }
-
         // Get user ID from preferences
         String userId = preferenceManager.getUserId();
         if (userId == null || userId.isEmpty()) {
             Log.e(TAG, "No user ID found in preferences");
             showErrorAndLoadFallback();
             return;
+        }
+
+        if (isOperator) {
+            loadOperatorProfile(userId);
+        } else {
+            loadEVOwnerProfile(userId);
+        }
+    }
+
+    private void loadEVOwnerProfile(String userId) {
+        // First try to load cached data for immediate display
+        ProfileResponse cachedProfile = profileService.getCachedProfile();
+        if (cachedProfile != null) {
+            populateFields(cachedProfile);
         }
 
         // Load fresh data from API
@@ -306,19 +338,51 @@ public class ProfileFragment extends Fragment {
                     getActivity().runOnUiThread(() -> {
                         currentProfile = profile;
                         populateFields(profile);
-                        Log.d(TAG, "Profile loaded successfully");
+                        Log.d(TAG, "EV Owner profile loaded successfully");
                     });
                 }
             }
 
             @Override
             public void onError(String error) {
-                Log.e(TAG, "Failed to load profile: " + error);
+                Log.e(TAG, "Failed to load EV Owner profile: " + error);
                 if (getActivity() != null && isAdded()) {
                     getActivity().runOnUiThread(() -> {
                         Toast.makeText(getContext(), "Unable to load profile data", Toast.LENGTH_SHORT).show();
-                        // Keep any cached data that was already displayed
                         showErrorAndLoadFallback();
+                    });
+                }
+            }
+        });
+    }
+
+    private void loadOperatorProfile(String userId) {
+        // First try to load cached data for immediate display
+        User cachedProfile = operatorProfileService.getCachedProfile();
+        if (cachedProfile != null) {
+            populateOperatorFields(cachedProfile);
+        }
+
+        // Load fresh data from API
+        operatorProfileService.getOperatorProfile(userId, new OperatorProfileService.OperatorProfileCallback() {
+            @Override
+            public void onSuccess(User profile) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        currentOperatorProfile = profile;
+                        populateOperatorFields(profile);
+                        Log.d(TAG, "Operator profile loaded successfully");
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to load operator profile: " + error);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Unable to load profile data", Toast.LENGTH_SHORT).show();
+                        showOperatorErrorAndLoadFallback();
                     });
                 }
             }
@@ -464,18 +528,30 @@ public class ProfileFragment extends Fragment {
             return;
         }
 
-        String firstName = etFirstName.getText().toString().trim();
-        String lastName = etLastName.getText().toString().trim();
-        String email = etEmail.getText().toString().trim();
-        String phone = etPhone.getText().toString().trim();
-        String nic = etNic.getText().toString().trim();
-
         // Get user ID from preferences
         String userId = preferenceManager.getUserId();
         if (userId == null || userId.isEmpty()) {
             Toast.makeText(getContext(), "Unable to save: User ID not found", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // Disable save button and show loading state
+        btnSaveProfile.setEnabled(false);
+        btnSaveProfile.setText("Saving...");
+
+        if (isOperator) {
+            saveOperatorProfile(userId);
+        } else {
+            saveEVOwnerProfile(userId);
+        }
+    }
+
+    private void saveEVOwnerProfile(String userId) {
+        String firstName = etFirstName.getText().toString().trim();
+        String lastName = etLastName.getText().toString().trim();
+        String email = etEmail.getText().toString().trim();
+        String phone = etPhone.getText().toString().trim();
+        String nic = etNic.getText().toString().trim();
 
         // Create update request
         ProfileUpdateRequest updateRequest = new ProfileUpdateRequest();
@@ -488,10 +564,6 @@ public class ProfileFragment extends Fragment {
         // Include current vehicle details
         updateRequest.setVehicleDetails(new ArrayList<>(vehicleList));
 
-        // Disable save button and show loading state
-        btnSaveProfile.setEnabled(false);
-        btnSaveProfile.setText("Saving...");
-
         // Update profile via API
         profileService.updateUserProfile(userId, updateRequest, new ProfileService.ProfileUpdateCallback() {
             @Override
@@ -503,14 +575,65 @@ public class ProfileFragment extends Fragment {
                         btnSaveProfile.setText("Save Profile");
                         
                         Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
-                        Log.d(TAG, "Profile updated successfully");
+                        Log.d(TAG, "EV Owner profile updated successfully");
                     });
                 }
             }
 
             @Override
             public void onError(String error) {
-                Log.e(TAG, "Failed to update profile: " + error);
+                Log.e(TAG, "Failed to update EV Owner profile: " + error);
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        btnSaveProfile.setEnabled(true);
+                        btnSaveProfile.setText("Save Profile");
+                        
+                        String errorMessage = "Failed to update profile";
+                        if (error != null && !error.isEmpty()) {
+                            errorMessage += ": " + error;
+                        }
+                        Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
+                    });
+                }
+            }
+        });
+    }
+
+    private void saveOperatorProfile(String userId) {
+        String username = etFirstName.getText().toString().trim(); // Using firstName field for username
+        String email = etEmail.getText().toString().trim();
+
+        // Create update request using current profile as base
+        if (currentOperatorProfile == null) {
+            Toast.makeText(getContext(), "Profile data not loaded", Toast.LENGTH_SHORT).show();
+            btnSaveProfile.setEnabled(true);
+            btnSaveProfile.setText("Save Profile");
+            return;
+        }
+
+        User updateUser = OperatorProfileService.createUpdateRequest(currentOperatorProfile);
+        updateUser.setUsername(username);
+        updateUser.setEmail(email);
+
+        // Update profile via API
+        operatorProfileService.updateOperatorProfile(userId, updateUser, new OperatorProfileService.OperatorProfileUpdateCallback() {
+            @Override
+            public void onSuccess(User updatedProfile) {
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        currentOperatorProfile = updatedProfile;
+                        btnSaveProfile.setEnabled(true);
+                        btnSaveProfile.setText("Save Profile");
+                        
+                        Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, "Operator profile updated successfully");
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to update operator profile: " + error);
                 if (getActivity() != null && isAdded()) {
                     getActivity().runOnUiThread(() -> {
                         btnSaveProfile.setEnabled(true);
@@ -850,5 +973,161 @@ public class ProfileFragment extends Fragment {
                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                .setIcon(android.R.drawable.ic_dialog_alert)
                .show();
+    }
+
+    /**
+     * Determine if the current user is an operator or EV owner
+     */
+    private void determineUserType() {
+        // Check if user has a role indicating they're an operator
+        String userType = preferenceManager.getUserType();
+        
+        if ("User".equals(userType)) {
+            // For User type, we need to check the role from auth response or stored data
+            // Station operators have User type but StationOperator role
+            isOperator = true;
+        } else if ("EVOwner".equals(userType)) {
+            isOperator = false;
+        } else {
+            // Default to EV Owner for backwards compatibility
+            isOperator = false;
+        }
+        
+        Log.d(TAG, "User type determined: " + (isOperator ? "Operator" : "EV Owner"));
+    }
+
+    /**
+     * Configure UI elements based on user type
+     */
+    private void configureUIForUserType() {
+        if (isOperator) {
+            // Hide entire vehicle information section for operators
+            if (vehicleInformationSection != null) vehicleInformationSection.setVisibility(View.GONE);
+            if (btnAddVehicle != null) btnAddVehicle.setVisibility(View.GONE);
+            if (recyclerViewVehicles != null) recyclerViewVehicles.setVisibility(View.GONE);
+            if (emptyVehicleState != null) emptyVehicleState.setVisibility(View.GONE);
+            
+            // Update profile heading for operators
+            if (profileTitle != null) profileTitle.setText("Operator Profile");
+            if (profileDescription != null) profileDescription.setText("View and update your operator information.");
+            
+            // Configure form fields for operators - only show Username and Email
+            updateFirstNameFieldForOperator();
+            
+            // Hide unnecessary fields and their TextInputLayout containers
+            hideFieldAndContainer(etLastName);
+            hideFieldAndContainer(etNic);
+            hideFieldAndContainer(etPhone);
+            
+            // Change account deletion to deactivation for operators
+            if (btnDeleteAccount != null) {
+                btnDeleteAccount.setText("Deactivate Account");
+            }
+        } else {
+            // EV Owner configuration (default)
+            if (etNic != null) etNic.setEnabled(false); // NIC is primary key, non-editable
+            
+            // Show all fields for EV Owners
+            showFieldAndContainer(etLastName);
+            showFieldAndContainer(etNic);
+            showFieldAndContainer(etPhone);
+        }
+    }
+
+    /**
+     * Hide a field and its TextInputLayout container
+     */
+    private void hideFieldAndContainer(TextInputEditText field) {
+        if (field != null && field.getParent() != null && field.getParent().getParent() instanceof View) {
+            View container = (View) field.getParent().getParent();
+            container.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Show a field and its TextInputLayout container
+     */
+    private void showFieldAndContainer(TextInputEditText field) {
+        if (field != null && field.getParent() != null && field.getParent().getParent() instanceof View) {
+            View container = (View) field.getParent().getParent();
+            container.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Find the vehicle information section by looking for the LinearLayout containing the heading and add button
+     */
+    private LinearLayout findVehicleInformationSection(View view) {
+        // The vehicle information section is the LinearLayout that contains the "Vehicle Information" TextView and Add button
+        // We can find it by looking for the parent of the btnAddVehicle
+        if (btnAddVehicle != null && btnAddVehicle.getParent() instanceof LinearLayout) {
+            return (LinearLayout) btnAddVehicle.getParent();
+        }
+        return null;
+    }
+
+    /**
+     * Update the first name field hint and label for operators
+     */
+    private void updateFirstNameFieldForOperator() {
+        if (etFirstName != null) {
+            etFirstName.setHint("Username");
+            // Update the TextInputLayout hint as well
+            if (etFirstName.getParent() instanceof com.google.android.material.textfield.TextInputLayout) {
+                com.google.android.material.textfield.TextInputLayout layout = 
+                    (com.google.android.material.textfield.TextInputLayout) etFirstName.getParent();
+                layout.setHint("Username");
+            }
+        }
+    }
+
+    /**
+     * Populate form fields with operator profile data
+     * Only populates visible fields for operators
+     */
+    private void populateOperatorFields(User profile) {
+        if (profile != null) {
+            // Only populate visible fields for operators
+            etFirstName.setText(profile.getUsername() != null ? profile.getUsername() : "");
+            etEmail.setText(profile.getEmail() != null ? profile.getEmail() : "");
+            
+            // Show username and email in profile heading for operators
+            String profileText = (profile.getUsername() != null ? profile.getUsername() : "Operator") + 
+                               " • " + (profile.getEmail() != null ? profile.getEmail() : "No email");
+            profileName.setText(profileText);
+            
+            // Clear hidden fields (in case they were previously populated)
+            etLastName.setText("");
+            etNic.setText("");
+            etPhone.setText("");
+        }
+    }
+
+    /**
+     * Show error for operator and load fallback data
+     */
+    private void showOperatorErrorAndLoadFallback() {
+        // Load fallback data from preferences
+        String userName = preferenceManager.getUserName();
+        String email = preferenceManager.getUserEmail();
+        
+        // Only populate visible fields for operators
+        etFirstName.setText(userName != null ? userName : "");
+        etEmail.setText(email != null ? email : "");
+        
+        // Show username and email in profile heading for operators (fallback)
+        String profileText = (userName != null ? userName : "Operator") + 
+                           " • " + (email != null ? email : "No email");
+        profileName.setText(profileText);
+        
+        // Clear hidden fields
+        etLastName.setText("");
+        etNic.setText("");
+        etEmail.setText(email != null ? email : "");
+        etPhone.setText("");
+        
+        if (profileName != null) {
+            profileName.setText(userName != null ? userName : "Operator");
+        }
     }
 }

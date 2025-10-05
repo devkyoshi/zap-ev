@@ -104,13 +104,15 @@ public class QRCodeActivity extends AppCompatActivity {
 
     private void generateQRCode() {
         try {
-            // Use QR code from booking if available, otherwise create one
+            // Only use QR code from backend if booking is approved
             String qrData;
-            if (booking.getQrCode() != null && !booking.getQrCode().isEmpty()) {
+            if (booking.getStatus() == BookingStatus.APPROVED && 
+                booking.getQrCode() != null && !booking.getQrCode().isEmpty()) {
+                // Use backend-generated QR code (properly formatted with hash)
                 qrData = booking.getQrCode();
             } else {
-                qrData = createQRCodeData();
-                booking.setQrCode(qrData);
+                // For pending bookings, show a placeholder message
+                qrData = "Booking pending approval. QR code will be available once approved.";
             }
             
             // Generate QR code bitmap
@@ -126,23 +128,7 @@ public class QRCodeActivity extends AppCompatActivity {
         }
     }
 
-    private String createQRCodeData() {
-        // Create JSON-like string for QR code data as fallback
-        // The backend should provide the proper QR code data
-        return "{\n" +
-                "  \"bookingId\": \"" + booking.getBookingId() + "\",\n" +
-                "  \"userId\": \"" + booking.getUserId() + "\",\n" +
-                "  \"stationId\": \"" + (booking.getStationId() != null ? booking.getStationId() : "N/A") + "\",\n" +
-                "  \"stationName\": \"" + booking.getStationName() + "\",\n" +
-                "  \"date\": \"" + dateFormat.format(booking.getReservationDate()) + "\",\n" +
-                "  \"time\": \"" + timeFormat.format(booking.getReservationTime()) + "\",\n" +
-                "  \"duration\": " + booking.getDuration() + ",\n" +
-                "  \"status\": \"" + booking.getStatus().getDisplayName() + "\",\n" +
-                "  \"customerName\": \"" + (booking.getUserId() != null ? booking.getUserId() : "Customer") + "\",\n" +
-                "  \"totalCost\": " + booking.getTotalCost() + ",\n" +
-                "  \"timestamp\": " + System.currentTimeMillis() + "\n" +
-                "}";
-    }
+
 
     private void setupClickListeners() {
         btnSaveQR.setOnClickListener(v -> {
