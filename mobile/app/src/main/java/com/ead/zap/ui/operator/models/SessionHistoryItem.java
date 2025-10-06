@@ -9,6 +9,9 @@ public class SessionHistoryItem {
     private String timeRange;
     private String energyDelivered;
     private String status;
+    
+    // Store the full session data for detailed view
+    private com.ead.zap.api.services.BookingApiService.SessionHistoryResponseDTO fullSessionData;
 
     public SessionHistoryItem(String bookingId, String customerName, String stationId, String slotNumber, 
                              String date, String timeRange, String energyDelivered, String status) {
@@ -21,6 +24,13 @@ public class SessionHistoryItem {
         this.energyDelivered = energyDelivered;
         this.status = status;
     }
+    
+    public SessionHistoryItem(String bookingId, String customerName, String stationId, String slotNumber, 
+                             String date, String timeRange, String energyDelivered, String status,
+                             com.ead.zap.api.services.BookingApiService.SessionHistoryResponseDTO fullSessionData) {
+        this(bookingId, customerName, stationId, slotNumber, date, timeRange, energyDelivered, status);
+        this.fullSessionData = fullSessionData;
+    }
 
     // Getters
     public String getBookingId() { return bookingId; }
@@ -32,6 +42,10 @@ public class SessionHistoryItem {
     public String getEnergyDelivered() { return energyDelivered; }
     public String getStatus() { return status; }
 
+    public com.ead.zap.api.services.BookingApiService.SessionHistoryResponseDTO getFullSessionData() { 
+        return fullSessionData; 
+    }
+
     // Setters
     public void setBookingId(String bookingId) { this.bookingId = bookingId; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
@@ -41,4 +55,7 @@ public class SessionHistoryItem {
     public void setTimeRange(String timeRange) { this.timeRange = timeRange; }
     public void setEnergyDelivered(String energyDelivered) { this.energyDelivered = energyDelivered; }
     public void setStatus(String status) { this.status = status; }
+    public void setFullSessionData(com.ead.zap.api.services.BookingApiService.SessionHistoryResponseDTO fullSessionData) { 
+        this.fullSessionData = fullSessionData; 
+    }
 }

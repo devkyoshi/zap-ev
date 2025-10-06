@@ -425,5 +425,27 @@ namespace EVChargingStationAPI.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Gets enhanced session history for station operators with EV owner details
+        /// </summary>
+        [HttpGet("session-history")]
+        [Authorize(Roles = "BackOffice,StationOperator")]
+        public async Task<IActionResult> GetSessionHistory()
+        {
+            try
+            {
+                var result = await _bookingService.GetSessionHistoryAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
     }
 }

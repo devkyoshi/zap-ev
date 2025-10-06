@@ -50,6 +50,11 @@ public class OperatorService {
         void onError(String error);
     }
 
+    public interface SessionHistoryCallback {
+        void onSuccess(List<BookingApiService.SessionHistoryResponseDTO> sessionHistory);
+        void onError(String error);
+    }
+
     /**
      * QR Verification result model
      */
@@ -261,41 +266,42 @@ public class OperatorService {
     }
 
     /**
-     * Get booking history for station operator
+     * Get enhanced session history for station operator
      */
-    public void getSessionHistory(BookingHistoryCallback callback) {
+    public void getSessionHistory(SessionHistoryCallback callback) {
         String authToken = getAuthToken();
         if (authToken == null) {
             callback.onError("Not authenticated");
             return;
         }
 
-        Call<ApiResponse<List<Booking>>> call = bookingApiService.getAllBookings("Bearer " + authToken);
+        Call<ApiResponse<List<BookingApiService.SessionHistoryResponseDTO>>> call = 
+            bookingApiService.getSessionHistory("Bearer " + authToken);
         
-        call.enqueue(new Callback<ApiResponse<List<Booking>>>() {
+        call.enqueue(new Callback<ApiResponse<List<BookingApiService.SessionHistoryResponseDTO>>>() {
             @Override
-            public void onResponse(Call<ApiResponse<List<Booking>>> call, 
-                                 Response<ApiResponse<List<Booking>>> response) {
+            public void onResponse(Call<ApiResponse<List<BookingApiService.SessionHistoryResponseDTO>>> call, 
+                                 Response<ApiResponse<List<BookingApiService.SessionHistoryResponseDTO>>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    ApiResponse<List<Booking>> apiResponse = response.body();
+                    ApiResponse<List<BookingApiService.SessionHistoryResponseDTO>> apiResponse = response.body();
                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                         Log.d(TAG, "Session history loaded successfully");
                         callback.onSuccess(apiResponse.getData());
                     } else {
                         String error = apiResponse.getMessage() != null ? 
-                                      apiResponse.getMessage() : "Failed to load history";
+                                      apiResponse.getMessage() : "Failed to load session history";
                         Log.e(TAG, error);
                         callback.onError(error);
                     }
                 } else {
-                    String error = "Failed to load history: " + response.message();
+                    String error = "Failed to load session history: " + response.message();
                     Log.e(TAG, error);
                     callback.onError(error);
                 }
             }
 
             @Override
-            public void onFailure(Call<ApiResponse<List<Booking>>> call, Throwable t) {
+            public void onFailure(Call<ApiResponse<List<BookingApiService.SessionHistoryResponseDTO>>> call, Throwable t) {
                 String error = "Network error: " + t.getMessage();
                 Log.e(TAG, error, t);
                 callback.onError(error);

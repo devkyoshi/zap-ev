@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.ead.zap.R;
+import com.ead.zap.api.services.BookingApiService;
 import com.ead.zap.models.Booking;
 import com.ead.zap.services.OperatorService;
 
@@ -112,18 +113,20 @@ public class OperatorQRScannerFragment extends Fragment {
 
     private void loadStationStatus() {
         // Load session history to calculate active sessions
-        operatorService.getSessionHistory(new OperatorService.BookingHistoryCallback() {
+        operatorService.getSessionHistory(new OperatorService.SessionHistoryCallback() {
             @Override
-            public void onSuccess(java.util.List<Booking> sessions) {
+            public void onSuccess(java.util.List<com.ead.zap.api.services.BookingApiService.SessionHistoryResponseDTO> sessions) {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        // Count active sessions (status = IN_PROGRESS or similar)
+                        // Count active sessions (status = IN_PROGRESS)
                         int activeSessions = 0;
-                        for (Booking session : sessions) {
-                            // Count sessions that are currently active
+                        for (com.ead.zap.api.services.BookingApiService.SessionHistoryResponseDTO session : sessions) {
+                            // Count sessions that are currently active/in progress
                             if (session.getStatus() != null && 
-                                (session.getStatus().name().equals("IN_PROGRESS") || 
-                                 session.getStatus().name().equals("ACTIVE"))) {
+                                (session.getStatus().equals("InProgress") || 
+                                 session.getStatus().equals("IN_PROGRESS") ||
+                                 session.getStatusDisplayName() != null && 
+                                 session.getStatusDisplayName().equals("In Progress"))) {
                                 activeSessions++;
                             }
                         }

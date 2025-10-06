@@ -62,4 +62,33 @@ namespace EVChargingStationAPI.Models.DTOs
         [Required]
         public string Action { get; set; } = string.Empty; // "start", "complete"
     }
+
+    public class SessionHistoryDTO
+    {
+        public string BookingId { get; set; } = string.Empty;
+        public string EVOwnerName { get; set; } = string.Empty;
+        public string EVOwnerNIC { get; set; } = string.Empty;
+        public string EVOwnerPhone { get; set; } = string.Empty;
+        public string ChargingStationId { get; set; } = string.Empty;
+        public string ChargingStationName { get; set; } = string.Empty;
+        public DateTime ReservationDateTime { get; set; }
+        public int DurationMinutes { get; set; }
+        public BookingStatus Status { get; set; }
+        public string StatusDisplayName { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; }
+        public DateTime? ActualStartTime { get; set; }
+        public DateTime? ActualEndTime { get; set; }
+        public double? EnergyDelivered { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public List<VehicleDetailDTO> CustomerVehicles { get; set; } = new();
+    }
+
+    public class VehicleDetailDTO
+    {
+        public string Make { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public string LicensePlate { get; set; } = string.Empty;
+        public int Year { get; set; }
+    }
 }

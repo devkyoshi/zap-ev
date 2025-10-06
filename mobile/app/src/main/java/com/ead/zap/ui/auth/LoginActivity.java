@@ -2,13 +2,18 @@ package com.ead.zap.ui.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.textfield.TextInputLayout;
 
 import com.ead.zap.MainActivity;
 import com.ead.zap.R;
@@ -22,6 +27,8 @@ public class LoginActivity extends AppCompatActivity {
     private EditText etEmail, etPassword;
     private Button btnLogin;
     private TextView tvSignUp, tvForgotPassword;
+    private ProgressBar progressBar;
+    private TextInputLayout emailInputLayout, passwordInputLayout;
     
     private AuthService authService;
     private PreferenceManager preferenceManager;
@@ -54,6 +61,12 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btn_login);
         tvSignUp = findViewById(R.id.tv_signup);
         tvForgotPassword = findViewById(R.id.tv_forgot_password);
+        progressBar = findViewById(R.id.progress_bar);
+        emailInputLayout = findViewById(R.id.email_input_layout);
+        passwordInputLayout = findViewById(R.id.password_input_layout);
+        
+        // Add input validation listeners
+        setupInputValidation();
     }
 
     private void setupClickListeners() {
@@ -75,14 +88,17 @@ public class LoginActivity extends AppCompatActivity {
         String emailOrNic = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
-        if (emailOrNic.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Please enter both email/NIC and password", Toast.LENGTH_SHORT).show();
+        // Clear any previous error messages
+        emailInputLayout.setError(null);
+        passwordInputLayout.setError(null);
+
+        // Validate inputs
+        if (!validateInputs(emailOrNic, password)) {
             return;
         }
 
-        // Disable login button to prevent multiple requests
-        btnLogin.setEnabled(false);
-        btnLogin.setText("Logging in...");
+        // Show loading state
+        showLoadingState(true);
 
         // Determine if input is NIC (for EV Owners) or username/email (for other users)
         if (isNIC(emailOrNic)) {
@@ -91,6 +107,7 @@ public class LoginActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(AuthResponse response) {
                     runOnUiThread(() -> {
+                        showLoadingState(false);
                         Toast.makeText(LoginActivity.this, "Welcome " + response.getUserType() + "!", Toast.LENGTH_SHORT).show();
                         navigateToMainActivity(response);
                     });
@@ -99,8 +116,8 @@ public class LoginActivity extends AppCompatActivity {
                 @Override
                 public void onError(String error) {
                     runOnUiThread(() -> {
-                        Toast.makeText(LoginActivity.this, "Login failed: " + error, Toast.LENGTH_LONG).show();
-                        resetLoginButton();
+                        showLoadingState(false);
+                        handleLoginError(error);
                     });
                 }
             });
@@ -110,6 +127,7 @@ public class LoginActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(AuthResponse response) {
                     runOnUiThread(() -> {
+                        showLoadingState(false);
                         Toast.makeText(LoginActivity.this, "Welcome " + response.getUserType() + "!", Toast.LENGTH_SHORT).show();
                         navigateToMainActivity(response);
                     });
@@ -118,8 +136,8 @@ public class LoginActivity extends AppCompatActivity {
                 @Override
                 public void onError(String error) {
                     runOnUiThread(() -> {
-                        Toast.makeText(LoginActivity.this, "Login failed: " + error, Toast.LENGTH_LONG).show();
-                        resetLoginButton();
+                        showLoadingState(false);
+                        handleLoginError(error);
                     });
                 }
             });
@@ -206,10 +224,102 @@ public class LoginActivity extends AppCompatActivity {
     }
     
     /**
-     * Reset login button to original state
+     * Setup input validation listeners
      */
+    private void setupInputValidation() {
+        etEmail.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                emailInputLayout.setError(null);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        etPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                passwordInputLayout.setError(null);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    /**
+     * Validate user inputs with specific error messages
+     */
+    private boolean validateInputs(String emailOrNic, String password) {
+        boolean isValid = true;
+
+        if (emailOrNic.isEmpty()) {
+            emailInputLayout.setError("Please enter your NIC or username");
+            isValid = false;
+        } else if (emailOrNic.length() < 3) {
+            emailInputLayout.setError("Input must be at least 3 characters long");
+            isValid = false;
+        }
+
+        if (password.isEmpty()) {
+            passwordInputLayout.setError("Please enter your password");
+            isValid = false;
+        } else if (password.length() < 6) {
+            passwordInputLayout.setError("Password must be at least 6 characters long");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    /**
+     * Show or hide loading state
+     */
+    private void showLoadingState(boolean isLoading) {
+        if (isLoading) {
+            btnLogin.setEnabled(false);
+            btnLogin.setText("Signing in...");
+            progressBar.setVisibility(View.VISIBLE);
+        } else {
+            btnLogin.setEnabled(true);
+            btnLogin.setText("Sign In");
+            progressBar.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Handle login errors with appropriate user feedback
+     */
+    private void handleLoginError(String error) {
+        // Check for specific error types and provide helpful messages
+        if (error.toLowerCase().contains("invalid credentials") || 
+            error.toLowerCase().contains("unauthorized") ||
+            error.toLowerCase().contains("login failed")) {
+            emailInputLayout.setError("Invalid NIC/username or password");
+            Toast.makeText(this, "Please check your credentials and try again", Toast.LENGTH_LONG).show();
+        } else if (error.toLowerCase().contains("network") || 
+                   error.toLowerCase().contains("connection")) {
+            Toast.makeText(this, "Network error. Please check your connection and try again", Toast.LENGTH_LONG).show();
+        } else if (error.toLowerCase().contains("server") || 
+                   error.toLowerCase().contains("timeout")) {
+            Toast.makeText(this, "Server error. Please try again later", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Login failed: " + error, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Reset login button to original state (deprecated - use showLoadingState instead)
+     */
+    @Deprecated
     private void resetLoginButton() {
-        btnLogin.setEnabled(true);
-        btnLogin.setText("Login");
+        showLoadingState(false);
     }
 }

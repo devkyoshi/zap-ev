@@ -65,14 +65,14 @@
                 android:layout_marginBottom="20dp" />
 
             <!-- Station Status Card -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp"
-                android:backgroundTint="@color/secondary">
+                android:backgroundTint="@color/white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -162,7 +162,7 @@
 
                 </LinearLayout>
 
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Quick Actions Section -->
             <TextView
@@ -208,6 +208,54 @@
                     app:cornerRadius="12dp" />
 
             </LinearLayout>
+
+            <!-- QR Scanner Illustration -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:backgroundTint="@color/card_bg"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+
+                app:strokeColor="@color/gray_600"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:layout_width="150dp"
+                        android:layout_height="150dp"
+                        android:src="@drawable/scan_qr_img"
+                        android:scaleType="centerCrop"
+                        android:layout_marginBottom="16dp"
+                        android:contentDescription="QR Code Scanner Illustration" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ready to Scan"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary_dark"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Point your camera at the customer's QR code to verify their booking"
+                        android:textSize="14sp"
+                        android:textColor="@color/accent"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.2" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 

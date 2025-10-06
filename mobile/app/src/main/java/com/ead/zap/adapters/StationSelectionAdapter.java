@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -45,6 +46,7 @@ public class StationSelectionAdapter extends RecyclerView.Adapter<StationSelecti
         holder.bind(station);
     }
 
+
     @Override
     public int getItemCount() {
         return stations.size();
@@ -63,6 +65,7 @@ public class StationSelectionAdapter extends RecyclerView.Adapter<StationSelecti
                         tvAvailability, tvChargingRate;
         private Button btnBookNow;
 
+
         public StationViewHolder(@NonNull View itemView) {
             super(itemView);
             
@@ -73,6 +76,7 @@ public class StationSelectionAdapter extends RecyclerView.Adapter<StationSelecti
             tvChargingRate = itemView.findViewById(R.id.tv_charging_rate);
             btnBookNow = itemView.findViewById(R.id.btn_book_now);
         }
+
 
         public void bind(ChargingStation station) {
             tvStationName.setText(station.getName());

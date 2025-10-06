@@ -771,5 +771,102 @@ namespace EVChargingStationAPI.Services
                 };
             }
         }
+
+        /// <summary>
+        /// Gets enhanced session history with EV owner details for station operators
+        /// </summary>
+        public async Task<ApiResponseDTO<List<SessionHistoryDTO>>> GetSessionHistoryAsync()
+        {
+            try
+            {
+                // Get all bookings with completed or in-progress status
+                var bookings = await _bookings.Find(b => 
+                    b.Status == BookingStatus.Completed || 
+                    b.Status == BookingStatus.InProgress ||
+                    b.Status == BookingStatus.Cancelled ||
+                    b.Status == BookingStatus.NoShow)
+                    .ToListAsync();
+
+                var sessionHistoryList = new List<SessionHistoryDTO>();
+
+                foreach (var booking in bookings)
+                {
+                    // Get EV Owner details
+                    var evOwner = await _evOwners.Find(e => e.NIC == booking.EVOwnerNIC).FirstOrDefaultAsync();
+                    
+                    // Get Charging Station details
+                    var station = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+
+                    // Calculate energy delivered (mock calculation based on duration and status)
+                    double? energyDelivered = null;
+                    if (booking.Status == BookingStatus.Completed && booking.ActualStartTime.HasValue && booking.ActualEndTime.HasValue)
+                    {
+                        var actualDuration = (booking.ActualEndTime.Value - booking.ActualStartTime.Value).TotalMinutes;
+                        energyDelivered = Math.Round(actualDuration / 60.0 * 7.5, 2); // 7.5 kWh per hour
+                    }
+
+                    var sessionHistory = new SessionHistoryDTO
+                    {
+                        BookingId = booking.Id,
+                        EVOwnerName = evOwner != null ? $"{evOwner.FirstName} {evOwner.LastName}".Trim() : "Unknown Customer",
+                        EVOwnerNIC = booking.EVOwnerNIC,
+                        EVOwnerPhone = evOwner?.PhoneNumber ?? "N/A",
+                        ChargingStationId = booking.ChargingStationId,
+                        ChargingStationName = station?.Name ?? $"Station {booking.ChargingStationId}",
+                        ReservationDateTime = booking.ReservationDateTime,
+                        DurationMinutes = booking.DurationMinutes,
+                        Status = booking.Status,
+                        StatusDisplayName = GetStatusDisplayName(booking.Status),
+                        TotalAmount = booking.TotalAmount,
+                        ActualStartTime = booking.ActualStartTime,
+                        ActualEndTime = booking.ActualEndTime,
+                        EnergyDelivered = energyDelivered,
+                        Notes = booking.Notes,
+                        CreatedAt = booking.CreatedAt,
+                        CustomerVehicles = evOwner?.VehicleDetails?.Select(v => new VehicleDetailDTO
+                        {
+                            Make = v.Make,
+                            Model = v.Model,
+                            LicensePlate = v.LicensePlate,
+                            Year = v.Year
+                        }).ToList() ?? new List<VehicleDetailDTO>()
+                    };
+
+                    sessionHistoryList.Add(sessionHistory);
+                }
+
+                return new ApiResponseDTO<List<SessionHistoryDTO>>
+                {
+                    Success = true,
+                    Message = "Session history retrieved successfully",
+                    Data = sessionHistoryList.OrderByDescending(s => s.CreatedAt).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<List<SessionHistoryDTO>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving session history"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets user-friendly status display name
+        /// </summary>
+        private string GetStatusDisplayName(BookingStatus status)
+        {
+            return status switch
+            {
+                BookingStatus.Pending => "Pending Approval",
+                BookingStatus.Approved => "Approved",
+                BookingStatus.InProgress => "In Progress",
+                BookingStatus.Completed => "Completed",
+                BookingStatus.Cancelled => "Cancelled",
+                BookingStatus.NoShow => "No Show",
+                _ => "Unknown"
+            };
+        }
     }
 }

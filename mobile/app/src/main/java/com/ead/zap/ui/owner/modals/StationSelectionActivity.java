@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -28,6 +29,8 @@ public class StationSelectionActivity extends AppCompatActivity {
     private LocationService locationService;
     private View progressBar, emptyView;
 
+    private ImageButton backButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,12 +47,18 @@ public class StationSelectionActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("Select Charging Station");
         }
+
+        backButton.setOnClickListener(v -> {
+            finish(); // This will close the current activity and go back
+        });
+
     }
 
     private void initViews() {
         recyclerView = findViewById(R.id.recyclerViewStations);
         progressBar = findViewById(R.id.progressBar);
         emptyView = findViewById(R.id.emptyView);
+        backButton = findViewById(R.id.backButton);
         
         // Setup retry button
         findViewById(R.id.btnRetry).setOnClickListener(v -> {

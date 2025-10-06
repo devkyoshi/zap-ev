@@ -123,6 +123,15 @@ public interface BookingApiService {
     );
 
     /**
+     * Get enhanced session history with customer details
+     * GET /api/bookings/session-history
+     */
+    @GET(ApiConfig.Bookings.BASE + "/session-history")
+    Call<ApiResponse<List<SessionHistoryResponseDTO>>> getSessionHistory(
+        @Header("Authorization") String authToken
+    );
+
+    /**
      * DTOs for API requests and responses
      */
     class CreateBookingRequest {
@@ -250,5 +259,97 @@ public interface BookingApiService {
 
         public String getMessage() { return message; }
         public void setMessage(String message) { this.message = message; }
+    }
+
+    class SessionHistoryResponseDTO {
+        private String bookingId;
+        private String evOwnerName;
+        private String evOwnerNIC;
+        private String evOwnerPhone;
+        private String chargingStationId;
+        private String chargingStationName;
+        private String reservationDateTime;
+        private int durationMinutes;
+        private String status;
+        private String statusDisplayName;
+        private double totalAmount;
+        private String actualStartTime;
+        private String actualEndTime;
+        private Double energyDelivered;
+        private String notes;
+        private String createdAt;
+        private java.util.List<VehicleDetailDTO> customerVehicles;
+
+        // Getters and setters
+        public String getBookingId() { return bookingId; }
+        public void setBookingId(String bookingId) { this.bookingId = bookingId; }
+
+        public String getEvOwnerName() { return evOwnerName; }
+        public void setEvOwnerName(String evOwnerName) { this.evOwnerName = evOwnerName; }
+
+        public String getEvOwnerNIC() { return evOwnerNIC; }
+        public void setEvOwnerNIC(String evOwnerNIC) { this.evOwnerNIC = evOwnerNIC; }
+
+        public String getEvOwnerPhone() { return evOwnerPhone; }
+        public void setEvOwnerPhone(String evOwnerPhone) { this.evOwnerPhone = evOwnerPhone; }
+
+        public String getChargingStationId() { return chargingStationId; }
+        public void setChargingStationId(String chargingStationId) { this.chargingStationId = chargingStationId; }
+
+        public String getChargingStationName() { return chargingStationName; }
+        public void setChargingStationName(String chargingStationName) { this.chargingStationName = chargingStationName; }
+
+        public String getReservationDateTime() { return reservationDateTime; }
+        public void setReservationDateTime(String reservationDateTime) { this.reservationDateTime = reservationDateTime; }
+
+        public int getDurationMinutes() { return durationMinutes; }
+        public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public String getStatusDisplayName() { return statusDisplayName; }
+        public void setStatusDisplayName(String statusDisplayName) { this.statusDisplayName = statusDisplayName; }
+
+        public double getTotalAmount() { return totalAmount; }
+        public void setTotalAmount(double totalAmount) { this.totalAmount = totalAmount; }
+
+        public String getActualStartTime() { return actualStartTime; }
+        public void setActualStartTime(String actualStartTime) { this.actualStartTime = actualStartTime; }
+
+        public String getActualEndTime() { return actualEndTime; }
+        public void setActualEndTime(String actualEndTime) { this.actualEndTime = actualEndTime; }
+
+        public Double getEnergyDelivered() { return energyDelivered; }
+        public void setEnergyDelivered(Double energyDelivered) { this.energyDelivered = energyDelivered; }
+
+        public String getNotes() { return notes; }
+        public void setNotes(String notes) { this.notes = notes; }
+
+        public String getCreatedAt() { return createdAt; }
+        public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+        public java.util.List<VehicleDetailDTO> getCustomerVehicles() { return customerVehicles; }
+        public void setCustomerVehicles(java.util.List<VehicleDetailDTO> customerVehicles) { this.customerVehicles = customerVehicles; }
+    }
+
+    class VehicleDetailDTO {
+        private String make;
+        private String model;
+        private String licensePlate;
+        private int year;
+
+        // Getters and setters
+        public String getMake() { return make; }
+        public void setMake(String make) { this.make = make; }
+
+        public String getModel() { return model; }
+        public void setModel(String model) { this.model = model; }
+
+        public String getLicensePlate() { return licensePlate; }
+        public void setLicensePlate(String licensePlate) { this.licensePlate = licensePlate; }
+
+        public int getYear() { return year; }
+        public void setYear(int year) { this.year = year; }
     }
 }

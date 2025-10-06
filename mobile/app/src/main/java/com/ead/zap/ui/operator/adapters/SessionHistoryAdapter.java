@@ -16,9 +16,18 @@ import java.util.List;
 public class SessionHistoryAdapter extends RecyclerView.Adapter<SessionHistoryAdapter.SessionHistoryViewHolder> {
 
     private List<SessionHistoryItem> historyItems;
+    private OnSessionClickListener clickListener;
 
     public SessionHistoryAdapter(List<SessionHistoryItem> historyItems) {
         this.historyItems = historyItems;
+    }
+
+    public interface OnSessionClickListener {
+        void onSessionClick(SessionHistoryItem item);
+    }
+
+    public void setOnSessionClickListener(OnSessionClickListener listener) {
+        this.clickListener = listener;
     }
 
     @NonNull
@@ -33,6 +42,13 @@ public class SessionHistoryAdapter extends RecyclerView.Adapter<SessionHistoryAd
     public void onBindViewHolder(@NonNull SessionHistoryViewHolder holder, int position) {
         SessionHistoryItem item = historyItems.get(position);
         holder.bind(item);
+        
+        // Set click listener
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onSessionClick(item);
+            }
+        });
     }
 
     @Override
@@ -56,7 +72,15 @@ public class SessionHistoryAdapter extends RecyclerView.Adapter<SessionHistoryAd
         }
 
         public void bind(SessionHistoryItem item) {
-            tvBookingId.setText(item.getBookingId());
+            // Format booking ID as a reference (show only last 6 characters)
+            String bookingRef = "Ref: ";
+            if (item.getBookingId() != null && item.getBookingId().length() > 6) {
+                bookingRef += "..." + item.getBookingId().substring(item.getBookingId().length() - 6);
+            } else {
+                bookingRef += item.getBookingId();
+            }
+            tvBookingId.setText(bookingRef);
+            
             tvCustomerName.setText(item.getCustomerName());
             tvStationSlot.setText(item.getStationId() + " / " + item.getSlotNumber());
             tvDate.setText(item.getDate());
