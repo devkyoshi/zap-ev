@@ -202,7 +202,7 @@ else
 }
 
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
 app.UseRateLimiter();
 app.UseAuthentication();

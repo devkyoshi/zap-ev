@@ -1,22 +1,45 @@
 package com.ead.zap.models;
 
+import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
 import java.util.Date;
 
 public class Booking implements Serializable {
+    @SerializedName("id")
     private String bookingId;
+    
+    @SerializedName("evOwnerNIC")
     private String userId;
+    
+    @SerializedName("chargingStationId")
     private String stationId;
+    
+    @SerializedName("chargingStationName")
     private String stationName;
-    private String stationAddress;
-    private Date reservationDate;
+    
+    private String stationAddress; // Not in API response
+    
+    private Date reservationDate; // Will be parsed from reservationDateTime
+    
+    @SerializedName("reservationDateTime")
     private Date reservationTime;
+    
+    @SerializedName("durationMinutes")
     private int duration; // in minutes
+    
+    @SerializedName("totalAmount")
     private double totalCost;
+    
+    @SerializedName("status")
     private BookingStatus status = BookingStatus.PENDING;
+    
+    @SerializedName("qrCode")
     private String qrCode;
+    
+    @SerializedName("createdAt")
     private Date createdAt;
-    private Date updatedAt;
+    
+    private Date updatedAt; // Not in API response
 
     public Booking() {
         // Default constructor
@@ -68,8 +91,15 @@ public class Booking implements Serializable {
     public BookingStatus getStatus() { return status; }
     public void setStatus(BookingStatus status) { this.status = status; }
     
+    // Handle integer status values from JSON (Gson will call this when it encounters an int)
+    public void setStatus(int statusValue) {
+        this.status = BookingStatus.fromValue(statusValue);
+    }
+    
     // Convenience methods for backward compatibility and API integration
-    public String getStatusString() { return status.getDisplayName(); }
+    public String getStatusString() { 
+        return status != null ? status.getDisplayName() : "Unknown"; 
+    }
     public void setStatusFromString(String statusString) { 
         this.status = BookingStatus.fromString(statusString); 
     }

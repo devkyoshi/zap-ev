@@ -19,6 +19,8 @@ import com.ead.zap.services.OperatorService;
 import com.ead.zap.ui.operator.adapters.SessionHistoryAdapter;
 import com.ead.zap.ui.operator.models.SessionHistoryItem;
 
+import android.util.Log;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -59,26 +61,60 @@ public class OperatorHistoryFragment extends Fragment {
     }
 
     private void loadHistoryData() {
+        Log.d("OperatorHistory", "Starting to load session history...");
 
         operatorService.getSessionHistory(new OperatorService.BookingHistoryCallback() {
             @Override
             public void onSuccess(List<Booking> bookings) {
+                Log.d("OperatorHistory", "API call successful. Retrieved " + bookings.size() + " bookings");
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         historyItems.clear();
                         
                         // Convert Booking objects to SessionHistoryItem objects
                         for (Booking booking : bookings) {
-                            if ("COMPLETED".equals(booking.getStatus())) {
+                            // Log booking processing
+                            if (booking.getStatus() == null) {
+                                Log.w("OperatorHistory", "Booking " + booking.getBookingId() + " has null status");
+                            } else {
+                                Log.d("OperatorHistory", "Processing booking " + booking.getBookingId() + 
+                                      " with status: " + booking.getStatus().name() + 
+                                      " (value: " + booking.getStatus().getValue() + ")");
+                            }
+                            
+                            String statusStr = "null";
+                            try {
+                                statusStr = booking.getStatus() != null ? booking.getStatusString() : "null";
+                            } catch (Exception e) {
+                                Log.w("OperatorHistory", "Error getting status string for booking " + booking.getBookingId(), e);
+                                statusStr = "unknown";
+                            }
+                            
+                            Log.d("OperatorHistory", "Processing booking " + booking.getBookingId() + 
+                                  " with status: " + (booking.getStatus() != null ? booking.getStatus().name() : "null") + 
+                                  " statusString: " + statusStr);
+                            
+                            // Check for completed status
+                            boolean isCompleted = booking.getStatus() != null && 
+                                                 booking.getStatus() == com.ead.zap.models.BookingStatus.COMPLETED;
+                            
+                            Log.d("OperatorHistory", "Booking " + booking.getBookingId() + 
+                                  " is completed: " + isCompleted);
+                            
+                            if (isCompleted) {
                                 SessionHistoryItem item = convertBookingToHistoryItem(booking);
                                 historyItems.add(item);
+                                Log.d("OperatorHistory", "Added completed session: " + booking.getBookingId());
                             }
                         }
                         
+                        Log.d("OperatorHistory", "Total completed sessions found: " + historyItems.size());
                         adapter.notifyDataSetChanged();
                         
                         if (historyItems.isEmpty()) {
                             Toast.makeText(getContext(), "No completed sessions found", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(getContext(), "Loaded " + historyItems.size() + " completed sessions", Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
@@ -86,12 +122,10 @@ public class OperatorHistoryFragment extends Fragment {
 
             @Override
             public void onError(String error) {
+                Log.e("OperatorHistory", "Failed to load session history: " + error);
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         Toast.makeText(getContext(), "Error loading history: " + error, Toast.LENGTH_LONG).show();
-                        
-                        // Load mock data as fallback
-                        loadMockData();
                     });
                 }
             }
@@ -125,6 +159,17 @@ public class OperatorHistoryFragment extends Fragment {
         double energyDelivered = booking.getDuration() / 60.0 * 7.5; // 7.5 kWh per hour
         String energy = String.format("%.1f kWh", energyDelivered);
         
+        // Safely get status string
+        String statusString = "Unknown";
+        try {
+            if (booking.getStatus() != null) {
+                statusString = booking.getStatusString();
+            }
+        } catch (Exception e) {
+            Log.w("OperatorHistory", "Error getting status string in convertBookingToHistoryItem", e);
+            statusString = "Status Error";
+        }
+        
         return new SessionHistoryItem(
                 booking.getBookingId(),
                 booking.getUserId(), // Using user ID as customer name for now
@@ -133,16 +178,9 @@ public class OperatorHistoryFragment extends Fragment {
                 date,
                 timeRange,
                 energy,
-                booking.getStatusString()
+                statusString
         );
     }
 
-    private void loadMockData() {
-        // Fallback mock data for demonstration
-        historyItems.clear();
-        historyItems.add(new SessionHistoryItem("BK12345", "John Doe", "ST001", "A1", "Oct 2, 2025", "2:00 PM - 4:00 PM", "5.2 kWh", "Completed"));
-        historyItems.add(new SessionHistoryItem("BK12344", "Jane Smith", "ST001", "B2", "Oct 2, 2025", "12:00 PM - 1:30 PM", "3.8 kWh", "Completed"));
-        historyItems.add(new SessionHistoryItem("BK12343", "Mike Johnson", "ST002", "A1", "Oct 1, 2025", "3:00 PM - 5:00 PM", "6.1 kWh", "Completed"));
-        adapter.notifyDataSetChanged();
-    }
+
 }

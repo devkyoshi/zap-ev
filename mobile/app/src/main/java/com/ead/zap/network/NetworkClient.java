@@ -29,9 +29,11 @@ public class NetworkClient {
     private NetworkClient(Context context) {
         this.preferenceManager = new PreferenceManager(context);
 
-        // Configure Gson for date handling
+        // Configure Gson for date handling and custom deserializers
         Gson gson = new GsonBuilder()
                 .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .registerTypeAdapter(com.ead.zap.models.BookingStatus.class, 
+                                   new com.ead.zap.models.BookingStatusDeserializer())
                 .create();
 
         // Build OkHttp client with interceptors
