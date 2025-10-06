@@ -450,6 +450,9 @@ namespace EVChargingStationAPI.Services
                     };
                 }
 
+                // Store the original status BEFORE updating
+                var originalStatus = booking.Status;
+
                 var update = Builders<Booking>.Update
                     .Set(b => b.Status, BookingStatus.Cancelled)
                     .Set(b => b.UpdatedAt, DateTime.UtcNow);
@@ -458,6 +461,19 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // If booking was approved, return the slot
+                    if (originalStatus == BookingStatus.Approved || originalStatus == BookingStatus.InProgress)
+                    {
+                        var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                        if (chargingStation != null && chargingStation.AvailableSlots < chargingStation.TotalSlots)
+                        {
+                            var slotUpdate = Builders<ChargingStation>.Update
+                                .Set(s => s.AvailableSlots, chargingStation.AvailableSlots + 1)
+                                .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                            await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                        }
+                    }
+
                     return new ApiResponseDTO<bool>
                     {
                         Success = true,
@@ -522,14 +538,24 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // Reduce available slots by 1
+                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                    if (chargingStation != null && chargingStation.AvailableSlots > 0)
+                    {
+                        var slotUpdate = Builders<ChargingStation>.Update
+                            .Set(s => s.AvailableSlots, chargingStation.AvailableSlots - 1)
+                            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                        await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                    }
+
                     var updatedBooking = await _bookings.Find(b => b.Id == id).FirstOrDefaultAsync();
-                    var chargingStation = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
+                    var chargingStationForResponse = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
 
                     var responseDto = new BookingResponseDTO
                     {
                         Id = updatedBooking.Id,
                         EVOwnerNIC = updatedBooking.EVOwnerNIC,
-                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ChargingStationName = chargingStationForResponse?.Name ?? "Unknown Station",
                         ReservationDateTime = updatedBooking.ReservationDateTime,
                         DurationMinutes = updatedBooking.DurationMinutes,
                         Status = updatedBooking.Status,
@@ -676,14 +702,24 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // Increase available slots by 1
+                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                    if (chargingStation != null && chargingStation.AvailableSlots < chargingStation.TotalSlots)
+                    {
+                        var slotUpdate = Builders<ChargingStation>.Update
+                            .Set(s => s.AvailableSlots, chargingStation.AvailableSlots + 1)
+                            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                        await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                    }
+
                     var updatedBooking = await _bookings.Find(b => b.Id == id).FirstOrDefaultAsync();
-                    var chargingStation = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
+                    var chargingStationForResponse = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
 
                     var responseDto = new BookingResponseDTO
                     {
                         Id = updatedBooking.Id,
                         EVOwnerNIC = updatedBooking.EVOwnerNIC,
-                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ChargingStationName = chargingStationForResponse?.Name ?? "Unknown Station",
                         ReservationDateTime = updatedBooking.ReservationDateTime,
                         DurationMinutes = updatedBooking.DurationMinutes,
                         Status = updatedBooking.Status,
