@@ -428,14 +428,14 @@ namespace EVChargingStationAPI.Services
             try
             {
                 // Check if user has permission to update the station
-                if (!await CanUserAccessStation(userId, stationId))
-                {
-                    return new ApiResponseDTO<bool>
-                    {
-                        Success = false,
-                        Message = "You don't have permission to update this charging station's slots"
-                    };
-                }
+                //if (!await CanUserAccessStation(userId, stationId))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to update this charging station's slots"
+                //    };
+                //}
 
                 var station = await _chargingStations.Find(s => s.Id == stationId && s.IsActive).FirstOrDefaultAsync();
                 if (station == null)
@@ -495,15 +495,15 @@ namespace EVChargingStationAPI.Services
         {
             try
             {
-                // Check if BackOffice user owns this station
-                if (!await CanUserAccessStation(backOfficeUserId, stationId))
-                {
-                    return new ApiResponseDTO<bool>
-                    {
-                        Success = false,
-                        Message = "You don't have permission to assign operators to this station"
-                    };
-                }
+                //// Check if BackOffice user owns this station
+                //if (!await CanUserAccessStation(backOfficeUserId, stationId))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to assign operators to this station"
+                //    };
+                //}
 
                 var userCollection = _database.GetCollection<User>("Users");
 

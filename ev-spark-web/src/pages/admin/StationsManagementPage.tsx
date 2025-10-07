@@ -81,7 +81,7 @@ interface ApiResponse {
 }
 type ActionDialogState = {
   isOpen: boolean;
-  action: "create" | "edit" | "delete" | null;
+  action: "create" | "edit" | "delete" | "updateSlots" | null;
   station: Station | null;
 };
 
@@ -97,6 +97,7 @@ export default function StationsDisplayPage() {
     action: null,
     station: null,
   });
+  const [slotUpdateValue, setSlotUpdateValue] = useState<string>("");
 
   useEffect(() => {
     const fetchStations = async () => {
@@ -129,6 +130,57 @@ export default function StationsDisplayPage() {
     fetchStations();
   }, []);
 
+  const handleUpdateSlotAvailability = async (
+    stationId: string,
+    availableSlots: number
+  ) => {
+    try {
+      const response = await axiosInstance.patch(
+        `/ChargingStations/${stationId}/slots?availableSlots=${availableSlots}`
+      );
+
+      if (response.data.success) {
+        // Update local state
+        setStations(
+          stations.map((station) =>
+            station.id === stationId ? { ...station, availableSlots } : station
+          )
+        );
+        closeDialog();
+      } else {
+        throw new Error(response.data.message || "Failed to update slots");
+      }
+    } catch (err) {
+      console.error("Error updating slot availability:", err);
+      setError("Failed to update slot availability");
+    }
+  };
+
+  // UPDATE STATION STATUS
+  const handleUpdateStationStatus = async (
+    stationId: string,
+    isActive: boolean
+  ) => {
+    try {
+      const response = await axiosInstance.patch(
+        `/ChargingStations/${stationId}/status?isActive=${isActive}`
+      );
+
+      if (response.data.success) {
+        // Update local state
+        setStations(
+          stations.map((station) =>
+            station.id === stationId ? { ...station, isActive } : station
+          )
+        );
+      } else {
+        throw new Error(response.data.message || "Failed to update status");
+      }
+    } catch (err) {
+      console.error("Error updating station status:", err);
+      setError("Failed to update station status");
+    }
+  };
   // CREATE
   const handleCreateStation = async (data: Partial<Station>) => {
     try {
@@ -184,6 +236,23 @@ export default function StationsDisplayPage() {
       setError("Failed to delete station");
     }
   };
+  const handleSlotUpdateSubmit = () => {
+    if (!actionDialog.station) return;
+
+    const availableSlots = parseInt(slotUpdateValue);
+    if (isNaN(availableSlots) || availableSlots < 0) {
+      setError("Please enter a valid number");
+      return;
+    }
+
+    if (availableSlots > actionDialog.station.totalSlots) {
+      setError("Available slots cannot exceed total slots");
+      return;
+    }
+
+    handleUpdateSlotAvailability(actionDialog.station.id, availableSlots);
+  };
+
   useEffect(() => {
     let filtered = stations;
 
@@ -313,6 +382,15 @@ export default function StationsDisplayPage() {
     });
   };
 
+  const openUpdateSlotsDialog = (station: Station) => {
+    setSlotUpdateValue(station.availableSlots.toString());
+    setActionDialog({
+      isOpen: true,
+      action: "updateSlots",
+      station,
+    });
+  };
+
   const closeDialog = () => {
     setActionDialog({
       isOpen: false,
@@ -416,7 +494,10 @@ export default function StationsDisplayPage() {
 
               <CardContent className="pb-4 space-y-4">
                 {/* Availability */}
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                <div
+                  className="flex justify-between items-center p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => openUpdateSlotsDialog(station)}
+                >
                   <div>
                     <p className="text-sm font-medium">Available Slots</p>
                     <p className="text-2xl font-bold text-primary">
@@ -430,7 +511,19 @@ export default function StationsDisplayPage() {
                     </p>
                   </div>
                 </div>
-
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Station Status</span>
+                  </div>
+                  <Switch
+                    checked={station.isActive}
+                    onCheckedChange={(checked) =>
+                      handleUpdateStationStatus(station.id, checked)
+                    }
+                    className="data-[state=checked]:bg-green-500"
+                  />
+                </div>
                 {/* Pricing */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -546,6 +639,45 @@ export default function StationsDisplayPage() {
                 onConfirm={handleDeleteStation}
                 onCancel={closeDialog}
               />
+            </>
+          )}
+          {actionDialog.action === "updateSlots" && actionDialog.station && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Update Available Slots</DialogTitle>
+                <DialogDescription>
+                  Update the number of available charging slots for{" "}
+                  {actionDialog.station.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="availableSlots"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Available Slots
+                  </label>
+                  <Input
+                    id="availableSlots"
+                    type="number"
+                    min="0"
+                    max={actionDialog.station.totalSlots}
+                    value={slotUpdateValue}
+                    onChange={(e) => setSlotUpdateValue(e.target.value)}
+                    placeholder="Enter number of available slots"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Total slots: {actionDialog.station.totalSlots}
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={closeDialog}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSlotUpdateSubmit}>Update Slots</Button>
+                </div>
+              </div>
             </>
           )}
         </DialogContent>

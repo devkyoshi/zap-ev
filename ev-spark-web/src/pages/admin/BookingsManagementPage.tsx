@@ -6,6 +6,7 @@ import {
   XCircle,
   Calendar,
   Clock,
+  Plus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import {
 import { BookingDetailView } from "./BookingDetailView";
 import axiosInstance from "@/utils/axiosInstance";
 import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
+import { CreateBookingForm } from "./BookinCreate";
 
 interface Booking {
   id: string;
@@ -61,7 +63,12 @@ type ActionDialogState = {
   action: "view" | "cancel" | "create" | null;
   booking: Booking | null;
 };
-
+interface CreateBookingData {
+  chargingStationId: string;
+  reservationDateTime: string;
+  durationMinutes: number;
+  notes: string;
+}
 export default function BookingsManagementPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,6 +81,42 @@ export default function BookingsManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const handleCreateBooking = async (data: CreateBookingData) => {
+    try {
+      setError(null);
+
+      const response = await axiosInstance.post("/bookings", {
+        ...data,
+        durationMinutes: Number(data.durationMinutes),
+      });
+
+      if (response.data.success) {
+        await fetchBookings(); // Refresh the list
+        closeDialog();
+      } else {
+        throw new Error(response.data.message || "Failed to create booking");
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to create booking";
+      setError(message);
+      console.error("Error creating booking:", err);
+      throw err; // Re-throw to handle in form
+    }
+  };
+
+  // Add open create dialog function
+  const openCreateDialog = () => {
+    setActionDialog({
+      isOpen: true,
+      action: "create",
+      booking: null,
+    });
+  };
+  const closeDialog = () => {
+    setActionDialog({ isOpen: false, action: null, booking: null });
+    setError(null);
+  };
   const fetchBookings = async () => {
     try {
       setLoading(true);
@@ -100,9 +143,6 @@ export default function BookingsManagementPage() {
 
   const openCancelDialog = (booking: Booking) =>
     setActionDialog({ isOpen: true, action: "cancel", booking });
-
-  const closeDialog = () =>
-    setActionDialog({ isOpen: false, action: null, booking: null });
 
   const filteredBookings = bookings.filter((b) => {
     const matchesSearch =
@@ -219,6 +259,9 @@ export default function BookingsManagementPage() {
             </SelectContent>
           </Select>
         </div>
+        <Button onClick={openCreateDialog}>
+          <Plus className="mr-2 h-4 w-4" /> Create Booking
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -336,6 +379,26 @@ export default function BookingsManagementPage() {
                   Close
                 </Button>
               </div>
+            </>
+          )}
+          {/* Add Create Booking Dialog */}
+          {actionDialog.action === "create" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Create New Booking</DialogTitle>
+                <DialogDescription>
+                  Create a new charging station booking reservation.
+                </DialogDescription>
+              </DialogHeader>
+              {error && (
+                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+              <CreateBookingForm
+                onSubmit={handleCreateBooking}
+                onCancel={closeDialog}
+              />
             </>
           )}
         </DialogContent>

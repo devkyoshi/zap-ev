@@ -37,7 +37,7 @@ namespace EVChargingStationAPI.Controllers
         /// Creates a new booking reservation (EV Owners only)
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "EVOwner")]
+        [Authorize(Roles = "EVOwner,BackOffice")]
         public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDTO createBookingDto)
         {
             try
