@@ -1,18 +1,16 @@
-import { BookingStatus } from "@/utils/bookingStatus";
+import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
 import { Calendar, Clock, Car, MapPin, User, CreditCard } from "lucide-react";
 
 interface Booking {
   id: string;
-  stationName: string;
-  stationLocation: string;
-  ownerName: string;
-  vehicleInfo: string;
-  startTime: string;
-  endTime: string;
-  duration: number;
-  status: BookingStatus;
-  paymentStatus: "pending" | "paid" | "refunded";
+  evOwnerNIC: string;
+  chargingStationName: string;
+  reservationDateTime: string;
+  durationMinutes: number;
+  status: number;
   totalAmount: number;
+  qrCode: string;
+  createdAt: string;
 }
 
 interface BookingDetailViewProps {
@@ -60,31 +58,21 @@ export function BookingDetailView({ booking }: BookingDetailViewProps) {
       {/* Booking ID and Status */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="font-semibold">Booking #{booking.id}</h3>
+          <h3 className="font-semibold">Booking </h3>
         </div>
-        <div>
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getStatusBadgeClasses(
-              booking.status
-            )}`}
-          >
-            {booking.status}
-          </span>
-        </div>
-      </div>
-
-      {/* Station Info */}
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-muted-foreground">
-          Charging Station
-        </h4>
-        <div className="bg-muted/50 p-3 rounded-md space-y-2">
-          <div className="font-medium">{booking.stationName}</div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 mr-1" />
-            {booking.stationLocation}
-          </div>
-        </div>
+        <span
+          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getStatusBadgeClasses(
+            booking.status
+          )}`}
+        >
+          {BookingStatusLabel[
+            Object.keys(BookingStatus).find(
+              (key) =>
+                BookingStatus[key as keyof typeof BookingStatus] ===
+                booking.status
+            ) as keyof typeof BookingStatus
+          ] ?? "Unknown"}
+        </span>
       </div>
 
       {/* Date and Time */}
@@ -95,54 +83,41 @@ export function BookingDetailView({ booking }: BookingDetailViewProps) {
         <div className="bg-muted/50 p-3 rounded-md space-y-2">
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-            {formatDate(booking.startTime)}
+            {formatDate(booking.reservationDateTime)}
           </div>
           <div className="flex items-center">
             <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-            {formatTime(booking.startTime)} - {formatTime(booking.endTime)} (
-            {booking.duration} minutes)
+            {formatTime(booking.reservationDateTime)} ({booking.durationMinutes}{" "}
+            minutes)
           </div>
         </div>
       </div>
 
-      {/* Owner & Vehicle Info */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">
-            EV Owner
-          </h4>
-          <div className="bg-muted/50 p-3 rounded-md">
-            <div className="flex items-center">
-              <User className="h-4 w-4 mr-2 text-muted-foreground" />
-              {booking.ownerName}
-            </div>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">Vehicle</h4>
-          <div className="bg-muted/50 p-3 rounded-md">
-            <div className="flex items-center">
-              <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-              {booking.vehicleInfo}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Payment Details */}
+      {/* Booking Details */}
       <div className="space-y-2">
         <h4 className="text-sm font-medium text-muted-foreground">
-          Payment Information
+          Booking Details
         </h4>
-        <div className="bg-muted/50 p-3 rounded-md">
-          <div className="flex justify-between">
-            <div className="flex items-center">
-              <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span className="capitalize">{booking.paymentStatus}</span>
-            </div>
-            <div className="font-medium">${booking.totalAmount.toFixed(2)}</div>
+        <div className="bg-muted/50 p-3 rounded-md space-y-2">
+          <div className="flex items-center">
+            <User className="h-4 w-4 mr-2 text-muted-foreground" />
+            EV Owner NIC: {booking.evOwnerNIC}
+          </div>
+          <div className="flex items-center">
+            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+            Station: {booking.chargingStationName}
+          </div>
+          <div className="flex items-center">
+            <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
+            Total Amount: Rs. {booking.totalAmount.toFixed(2)}
           </div>
         </div>
+      </div>
+
+      {/* Created At */}
+      <div className="text-xs text-muted-foreground text-right">
+        Created on {formatDate(booking.createdAt)} at{" "}
+        {formatTime(booking.createdAt)}
       </div>
     </div>
   );
