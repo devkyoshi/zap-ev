@@ -86,7 +86,8 @@ namespace EVChargingStationAPI.Services
                         UserType = "User",
                         UserId = user.Id,
                         AccessTokenExpiresAt = accessTokenExpiry,
-                        RefreshTokenExpiresAt = refreshTokenExpiry
+                        RefreshTokenExpiresAt = refreshTokenExpiry,
+                        ChargingStationIds = user.ChargingStationIds ?? new List<string>()
                     }
                 };
             }

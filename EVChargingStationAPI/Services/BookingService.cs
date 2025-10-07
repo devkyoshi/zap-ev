@@ -143,30 +143,55 @@ namespace EVChargingStationAPI.Services
         }
 
         /// <summary>
-        /// Retrieves all bookings from the system
+        /// Retrieves all bookings from the system based on user role and assigned stations
         /// </summary>
         public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync(string userId)
         {
             try
             {
-                // Get user's charging station
+                // Fetch user
                 var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
-                if (user == null || string.IsNullOrEmpty(user.ChargingStationId))
+                if (user == null)
                 {
                     return new ApiResponseDTO<List<BookingResponseDTO>>
                     {
                         Success = false,
-                        Message = "User not found or not assigned to a charging station"
+                        Message = "User not found"
                     };
                 }
 
-                // Only get bookings for user's charging station
-                var bookings = await _bookings.Find(b => b.ChargingStationId == user.ChargingStationId).ToListAsync();
-                var bookingResponses = new List<BookingResponseDTO>();
+                List<Booking> bookings;
 
+                // BackOffice: get all bookings
+                if (user.Role == UserRole.BackOffice)
+                {
+                    bookings = await _bookings.Find(_ => true).ToListAsync();
+                }
+                else
+                {
+                    // Station Operator: must have assigned stations
+                    if (user.ChargingStationIds == null || user.ChargingStationIds.Count == 0)
+                    {
+                        return new ApiResponseDTO<List<BookingResponseDTO>>
+                        {
+                            Success = false,
+                            Message = "Station Operator is not assigned to any charging stations"
+                        };
+                    }
+
+                    // Get bookings only for assigned station IDs
+                    bookings = await _bookings
+                        .Find(b => user.ChargingStationIds.Contains(b.ChargingStationId))
+                        .ToListAsync();
+                }
+
+                // Build booking responses
+                var bookingResponses = new List<BookingResponseDTO>();
                 foreach (var booking in bookings)
                 {
-                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                    var chargingStation = await _chargingStations
+                        .Find(s => s.Id == booking.ChargingStationId)
+                        .FirstOrDefaultAsync();
 
                     bookingResponses.Add(new BookingResponseDTO
                     {
@@ -191,6 +216,7 @@ namespace EVChargingStationAPI.Services
             }
             catch (Exception ex)
             {
+                // Optional: log ex for debugging
                 return new ApiResponseDTO<List<BookingResponseDTO>>
                 {
                     Success = false,
@@ -852,7 +878,7 @@ namespace EVChargingStationAPI.Services
         }
 
         /// <summary>
-        /// Checks if a user can access a specific booking based on their associated charging station
+        /// Checks if a user can access a specific booking based on their associated charging stations
         /// </summary>
         private async Task<bool> CanUserAccessBooking(string userId, string bookingId)
         {
@@ -862,7 +888,13 @@ namespace EVChargingStationAPI.Services
             var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
             if (user == null) return false;
 
-            return user.ChargingStationId == booking.ChargingStationId;
+            // BackOffice users can access any booking
+            if (user.Role == UserRole.BackOffice)
+                return true;
+
+            // Station Operators must match one of their assigned stations
+            return user.ChargingStationIds != null && user.ChargingStationIds.Contains(booking.ChargingStationId);
         }
+
     }
 }
