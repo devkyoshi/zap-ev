@@ -11,10 +11,6 @@ import UsersPage from "./pages/admin/UsersPage";
 import OwnersPage from "./pages/admin/OwnersPage";
 import StationsManagementPage from "./pages/admin/StationsManagementPage";
 import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
-import StationsPage from "./pages/operator/StationsPage";
-import OperatorActiveBookingsPage from "./pages/operator/ActiveBookingsPage";
-import AllBookingsPage from "./pages/operator/AllBookingsPage";
-import SettingsPage from "./pages/operator/SettingsPage";
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -132,22 +128,6 @@ const router = createBrowserRouter([
       {
         path: "",
         element: <Navigate to="/operator/stations" replace />,
-      },
-      {
-        path: "stations",
-        element: <StationsPage />,
-      },
-      {
-        path: "bookings",
-        element: <AllBookingsPage />,
-      },
-      {
-        path: "bookings/active",
-        element: <OperatorActiveBookingsPage />,
-      },
-      {
-        path: "settings",
-        element: <SettingsPage />,
       },
     ],
   },
