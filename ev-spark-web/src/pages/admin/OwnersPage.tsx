@@ -26,13 +26,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-
-import { OwnerForm } from "./OwnerForm";
-import { OwnerDeleteConfirmation } from "./OwnerDeleteConfirmation";
+import { Badge } from "@/components/ui/badge";
 import axiosInstance from "@/utils/axiosInstance";
+import { OwnerForm } from "./OwnerForm";
 
-// API Response Types
-interface VehicleDetail {
+interface Vehicle {
   make: string;
   model: string;
   licensePlate: string;
@@ -47,8 +45,9 @@ interface EVOwner {
   email: string;
   phoneNumber: string;
   passwordHash: string;
+  password?: string;
   isActive: boolean;
-  vehicleDetails: VehicleDetail[];
+  vehicleDetails: Vehicle[];
   lastLogin: string | null;
   createdAt: string;
   updatedAt: string;
@@ -61,28 +60,14 @@ interface ApiResponse<T> {
   errors: string[];
 }
 
-// Local Owner type for the UI
-interface Owner {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  registeredDate: string;
-  vehicles: number;
-  active: boolean;
-  nic: string;
-  firstName: string;
-  lastName: string;
-}
-
 type ActionDialogState = {
   isOpen: boolean;
   action: "create" | "edit" | "delete" | null;
-  owner: Owner | null;
+  owner: EVOwner | null;
 };
 
-export default function OwnersPage() {
-  const [owners, setOwners] = useState<Owner[]>([]);
+export default function EVOwnersPage() {
+  const [owners, setOwners] = useState<EVOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,26 +81,12 @@ export default function OwnersPage() {
   const fetchOwners = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get<ApiResponse<EVOwner>>(
+      const response = await axiosInstance.get<ApiResponse<EVOwner[]>>(
         "/EVOwners"
       );
 
       if (response.data.success) {
-        // Transform API data to local Owner format
-        const transformedOwners: Owner[] = response.data.data.map((owner) => ({
-          id: owner.id,
-          name: `${owner.firstName} ${owner.lastName}`,
-          firstName: owner.firstName,
-          lastName: owner.lastName,
-          email: owner.email,
-          phone: owner.phoneNumber,
-          nic: owner.nic,
-          registeredDate: owner.createdAt,
-          vehicles: owner.vehicleDetails.length,
-          active: owner.isActive,
-        }));
-
-        setOwners(transformedOwners);
+        setOwners(response.data.data.flat());
       } else {
         throw new Error(response.data.message || "Failed to fetch owners");
       }
@@ -138,102 +109,45 @@ export default function OwnersPage() {
   // Filter owners by search query
   const filteredOwners = owners.filter((owner) => {
     const query = searchQuery.toLowerCase();
+    const fullName = `${owner.firstName} ${owner.lastName}`.toLowerCase();
+
     return (
-      owner.name.toLowerCase().includes(query) ||
+      fullName.includes(query) ||
       owner.email.toLowerCase().includes(query) ||
-      owner.phone.toLowerCase().includes(query) ||
+      owner.phoneNumber.toLowerCase().includes(query) ||
       owner.nic.toLowerCase().includes(query)
     );
   });
 
-  const handleCreateOwner = async (data: Partial<Owner>) => {
+  const handleToggleStatus = async (ownerId: string, isActive: boolean) => {
     try {
-      // Prepare data for API using the register endpoint structure
-      const newOwnerData = {
-        nic: data.nic || "",
-        firstName: data.firstName || "",
-        lastName: data.lastName || "",
-        email: data.email || "",
-        phoneNumber: data.phone || "",
-        password: "defaultPassword123", // You might want to make this configurable in the form
-        vehicleDetails: [],
-      };
-
-      // Validate required fields
-      if (
-        !newOwnerData.nic ||
-        !newOwnerData.firstName ||
-        !newOwnerData.lastName
-      ) {
-        throw new Error("NIC, First Name, and Last Name are required fields");
-      }
-
-      const response = await axiosInstance.post<ApiResponse<EVOwner>>(
-        "/EVOwners/register",
-        newOwnerData
-      );
-
-      if (response.data.success) {
-        // Refresh the owners list
-        await fetchOwners();
-        closeDialog();
-      } else {
-        throw new Error(response.data.message || "Failed to create owner");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create owner");
-      console.error("Error creating owner:", err);
-    }
-  };
-  const handleUpdateOwner = async (data: Partial<Owner>) => {
-    if (!actionDialog.owner) return;
-
-    try {
-      const updatedOwnerData = {
-        nic: data.nic || actionDialog.owner.nic,
-        firstName: data.firstName || actionDialog.owner.firstName,
-        lastName: data.lastName || actionDialog.owner.lastName,
-        email: data.email || actionDialog.owner.email,
-        phoneNumber: data.phone || actionDialog.owner.phone,
-        isActive: actionDialog.owner.active,
-      };
-
-      // Validate required fields
-      if (
-        !updatedOwnerData.nic ||
-        !updatedOwnerData.firstName ||
-        !updatedOwnerData.lastName
-      ) {
-        throw new Error("NIC, First Name, and Last Name are required fields");
-      }
+      const owner = owners.find((o) => o.id === ownerId);
+      if (!owner) return;
 
       const response = await axiosInstance.put<ApiResponse<EVOwner>>(
-        `/EVOwners/${actionDialog.owner.id}`,
-        updatedOwnerData
+        `/EVOwners/${ownerId}`,
+        {
+          ...owner,
+          isActive,
+        }
       );
 
       if (response.data.success) {
-        // Update local state
         setOwners(
           owners.map((owner) =>
-            owner.id === actionDialog.owner?.id
-              ? {
-                  ...owner,
-                  ...data,
-                  name: `${data.firstName || owner.firstName} ${
-                    data.lastName || owner.lastName
-                  }`,
-                }
-              : owner
+            owner.id === ownerId ? { ...owner, isActive } : owner
           )
         );
-        closeDialog();
       } else {
-        throw new Error(response.data.message || "Failed to update owner");
+        throw new Error(
+          response.data.message || "Failed to update owner status"
+        );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update owner");
-      console.error("Error updating owner:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to update owner status"
+      );
+      console.error("Error updating owner status:", err);
     }
   };
 
@@ -258,41 +172,80 @@ export default function OwnersPage() {
       console.error("Error deleting owner:", err);
     }
   };
-  const handleToggleStatus = async (ownerId: string, active: boolean) => {
+
+  // In your main component, update the handlers to use EVOwner:
+
+  const handleCreateOwner = async (data: Partial<EVOwner>) => {
     try {
-      const owner = owners.find((o) => o.id === ownerId);
-      if (!owner) return;
-
-      const updatedOwnerData = {
-        nic: owner.nic,
-        firstName: owner.firstName,
-        lastName: owner.lastName,
-        email: owner.email,
-        phoneNumber: owner.phone,
-        isActive: active,
-      };
-
-      const response = await axiosInstance.put<ApiResponse<EVOwner>>(
-        `/EVOwners/${ownerId}`,
-        updatedOwnerData
+      const response = await axiosInstance.post<ApiResponse<EVOwner>>(
+        "/EVOwners/register",
+        {
+          nic: data.nic,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          password: data.password,
+          vehicleDetails: data.vehicleDetails || [],
+        }
       );
 
       if (response.data.success) {
-        setOwners(
-          owners.map((owner) =>
-            owner.id === ownerId ? { ...owner, active } : owner
-          )
-        );
+        await fetchOwners();
+        closeDialog();
       } else {
-        throw new Error(
-          response.data.message || "Failed to update owner status"
-        );
+        throw new Error(response.data.message || "Failed to create owner");
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to update owner status"
+      setError(err instanceof Error ? err.message : "Failed to create owner");
+      console.error("Error creating owner:", err);
+    }
+  };
+
+  const handleUpdateOwner = async (data: Partial<EVOwner>) => {
+    if (!actionDialog.owner) {
+      console.error("No owner selected for update");
+      return;
+    }
+
+    try {
+      console.log("Updating owner with data:", data);
+      console.log("Owner ID:", actionDialog.owner.id);
+
+      const updateData = {
+        nic: data.nic,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        isActive: actionDialog.owner.isActive,
+        // Only include password if provided
+        ...(data.password && { password: data.password }),
+        vehicleDetails: data.vehicleDetails,
+      };
+
+      console.log("Sending update payload:", updateData);
+
+      const response = await axiosInstance.put<ApiResponse<EVOwner>>(
+        `/EVOwners/${actionDialog.owner.id}`,
+        updateData
       );
-      console.error("Error updating owner status:", err);
+
+      console.log("Update response:", response);
+
+      if (response.data.success) {
+        console.log("Update successful, refreshing data...");
+        await fetchOwners();
+        closeDialog();
+      } else {
+        console.error("Update failed:", response.data.message);
+        throw new Error(response.data.message || "Failed to update owner");
+      }
+    } catch (err) {
+      console.error("Error in handleUpdateOwner:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update owner";
+      setError(errorMessage);
     }
   };
 
@@ -304,7 +257,7 @@ export default function OwnersPage() {
     });
   };
 
-  const openEditDialog = (owner: Owner) => {
+  const openEditDialog = (owner: EVOwner) => {
     setActionDialog({
       isOpen: true,
       action: "edit",
@@ -312,7 +265,7 @@ export default function OwnersPage() {
     });
   };
 
-  const openDeleteDialog = (owner: Owner) => {
+  const openDeleteDialog = (owner: EVOwner) => {
     setActionDialog({
       isOpen: true,
       action: "delete",
@@ -335,6 +288,11 @@ export default function OwnersPage() {
       month: "short",
       day: "numeric",
     });
+  };
+
+  const formatLastLogin = (lastLogin: string | null) => {
+    if (!lastLogin) return "Never";
+    return formatDate(lastLogin);
   };
 
   if (loading) {
@@ -386,6 +344,7 @@ export default function OwnersPage() {
               <TableHead>Phone</TableHead>
               <TableHead>NIC</TableHead>
               <TableHead>Registered</TableHead>
+              <TableHead>Last Login</TableHead>
               <TableHead>Vehicles</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -394,7 +353,7 @@ export default function OwnersPage() {
           <TableBody>
             {filteredOwners.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   {owners.length === 0
                     ? "No owners found."
                     : "No matching owners found."}
@@ -403,24 +362,32 @@ export default function OwnersPage() {
             ) : (
               filteredOwners.map((owner) => (
                 <TableRow key={owner.id}>
-                  <TableCell className="font-medium">{owner.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {owner.firstName} {owner.lastName}
+                  </TableCell>
                   <TableCell>{owner.email}</TableCell>
-                  <TableCell>{owner.phone}</TableCell>
+                  <TableCell>{owner.phoneNumber}</TableCell>
                   <TableCell>{owner.nic}</TableCell>
-                  <TableCell>{formatDate(owner.registeredDate)}</TableCell>
+                  <TableCell>{formatDate(owner.createdAt)}</TableCell>
+                  <TableCell>{formatLastLogin(owner.lastLogin)}</TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                      {owner.vehicles}
-                    </span>
+                    <Badge variant="secondary">
+                      {owner.vehicleDetails.length} vehicles
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    <Switch
-                      checked={owner.active}
-                      onCheckedChange={(checked) =>
-                        handleToggleStatus(owner.id, checked)
-                      }
-                      className="data-[state=checked]:bg-green-500"
-                    />
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={owner.isActive}
+                        onCheckedChange={(checked) =>
+                          handleToggleStatus(owner.id, checked)
+                        }
+                        className="data-[state=checked]:bg-green-500"
+                      />
+                      <span className="text-sm">
+                        {owner.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -455,12 +422,11 @@ export default function OwnersPage() {
         </Table>
       </div>
 
-      {/* Dialog for create/edit/delete actions */}
       <Dialog
         open={actionDialog.isOpen}
         onOpenChange={(isOpen) => !isOpen && closeDialog()}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           {actionDialog.action === "create" && (
             <>
               <DialogHeader>
@@ -496,14 +462,18 @@ export default function OwnersPage() {
               <DialogHeader>
                 <DialogTitle>Delete Owner</DialogTitle>
                 <DialogDescription>
-                  This action cannot be undone.
+                  Are you sure you want to delete {actionDialog.owner.firstName}{" "}
+                  {actionDialog.owner.lastName}? This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
-              <OwnerDeleteConfirmation
-                ownerName={actionDialog.owner.name}
-                onConfirm={handleDeleteOwner}
-                onCancel={closeDialog}
-              />
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={closeDialog}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteOwner}>
+                  Delete
+                </Button>
+              </div>
             </>
           )}
         </DialogContent>

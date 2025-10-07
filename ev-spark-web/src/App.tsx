@@ -11,25 +11,15 @@ import UsersPage from "./pages/admin/UsersPage";
 import OwnersPage from "./pages/admin/OwnersPage";
 import StationsManagementPage from "./pages/admin/StationsManagementPage";
 import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
-import OwnerDashboard from "./pages/owner/Dashboard";
-import ActiveBookingsPage from "./pages/owner/ActiveBookingsPage";
-import BookingHistoryPage from "./pages/owner/BookingHistoryPage";
-import ProfilePage from "./pages/owner/ProfilePage";
-import NewBookingPage from "./pages/owner/NewBookingPage";
-import FindStationsPage from "./pages/owner/FindStationsPage";
-import RecommendedStationsPage from "./pages/owner/RecommendedStationsPage";
-import ChargingHistoryPage from "./pages/owner/ChargingHistoryPage";
 import StationsPage from "./pages/operator/StationsPage";
 import OperatorActiveBookingsPage from "./pages/operator/ActiveBookingsPage";
 import AllBookingsPage from "./pages/operator/AllBookingsPage";
 import SettingsPage from "./pages/operator/SettingsPage";
-
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import OperatorLayout from "./layouts/OperatorLayout";
 import OwnerLayout from "./layouts/OwnerLayout";
-
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -169,38 +159,6 @@ const router = createBrowserRouter([
       {
         path: "",
         element: <Navigate to="/owner/dashboard" replace />,
-      },
-      {
-        path: "dashboard",
-        element: <OwnerDashboard />,
-      },
-      {
-        path: "stations",
-        element: <FindStationsPage />,
-      },
-      {
-        path: "stations/recommended",
-        element: <RecommendedStationsPage />,
-      },
-      {
-        path: "charging/history",
-        element: <ChargingHistoryPage />,
-      },
-      {
-        path: "bookings/upcoming",
-        element: <ActiveBookingsPage />,
-      },
-      {
-        path: "bookings/history",
-        element: <BookingHistoryPage />,
-      },
-      {
-        path: "bookings/new",
-        element: <NewBookingPage />,
-      },
-      {
-        path: "profile",
-        element: <ProfilePage />,
       },
     ],
   },
