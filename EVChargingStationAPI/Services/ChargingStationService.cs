@@ -253,14 +253,14 @@ namespace EVChargingStationAPI.Services
             try
             {
                 // Check if user has permission to delete the station
-                if (!await CanUserAccessStation(userId, id))
-                {
-                    return new ApiResponseDTO<bool>
-                    {
-                        Success = false,
-                        Message = "You don't have permission to delete this charging station"
-                    };
-                }
+                //if (!await CanUserAccessStation(userId, id))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to delete this charging station"
+                //    };
+                //}
 
                 // Check if charging station has active bookings
                 var activeBookings = await _bookings.Find(b =>
