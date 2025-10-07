@@ -17,6 +17,8 @@ namespace EVChargingStationAPI.Services
     {
         Task<ApiResponseDTO<BookingResponseDTO>> CreateBookingAsync(string evOwnerNIC, CreateBookingDTO createBookingDto);
         Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync(string userId);
+        Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync2();
+
         Task<ApiResponseDTO<List<BookingResponseDTO>>> GetBookingsByEVOwnerAsync(string evOwnerNIC);
         Task<ApiResponseDTO<BookingResponseDTO>> GetBookingByIdAsync(string id);
         Task<ApiResponseDTO<BookingResponseDTO>> UpdateBookingAsync(string id, string evOwnerNIC, UpdateBookingDTO updateBookingDto);

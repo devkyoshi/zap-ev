@@ -1,8 +1,15 @@
-import { useState } from "react"
-import { Search, MoreHorizontal, CheckCircle, XCircle, Calendar, Clock } from "lucide-react"
+import { useState, useEffect } from "react";
+import {
+  Search,
+  MoreHorizontal,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  Clock,
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -10,207 +17,221 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
-import { BookingDetailView } from "./BookingDetailView"
-import { BookingCancellationConfirmation } from "./BookingCancellationConfirmation"
+import { BookingDetailView } from "./BookingDetailView";
+import axiosInstance from "@/utils/axiosInstance";
+import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
 
-// Booking type definition
+// Booking type definition matching API
 interface Booking {
-  id: string
-  stationName: string
-  stationLocation: string
-  ownerName: string
-  vehicleInfo: string
-  startTime: string
-  endTime: string
-  duration: number // in minutes
-  status: "upcoming" | "in-progress" | "completed" | "cancelled"
-  paymentStatus: "pending" | "paid" | "refunded"
-  amount: number
+  id: string;
+  stationName: string;
+  stationLocation: string;
+  ownerName: string;
+  vehicleInfo: string;
+  startTime: string;
+  endTime: string;
+  duration: number; // in minutes
+  status: BookingStatus;
+  paymentStatus: "pending" | "paid" | "refunded";
+  totalAmount: number;
 }
 
-// Sample data - would come from API in real application
-const sampleBookings: Booking[] = [
-  {
-    id: "B-1001",
-    stationName: "Downtown Charging Hub",
-    stationLocation: "123 Main St, City Center",
-    ownerName: "John Smith",
-    vehicleInfo: "Tesla Model 3",
-    startTime: "2025-12-15T10:00:00Z",
-    endTime: "2025-12-15T11:30:00Z",
-    duration: 90,
-    status: "upcoming",
-    paymentStatus: "paid",
-    amount: 25.50,
-  },
-  {
-    id: "B-1002",
-    stationName: "Westside Mall Station",
-    stationLocation: "456 Market Ave, Westside",
-    ownerName: "Emily Johnson",
-    vehicleInfo: "Nissan Leaf",
-    startTime: "2025-12-15T09:00:00Z",
-    endTime: "2025-12-15T10:30:00Z",
-    duration: 90,
-    status: "in-progress",
-    paymentStatus: "paid",
-    amount: 25.50,
-  },
-  {
-    id: "B-1003",
-    stationName: "Downtown Charging Hub",
-    stationLocation: "123 Main St, City Center",
-    ownerName: "Michael Brown",
-    vehicleInfo: "Chevrolet Bolt",
-    startTime: "2025-12-14T14:00:00Z",
-    endTime: "2025-12-14T15:00:00Z",
-    duration: 60,
-    status: "completed",
-    paymentStatus: "paid",
-    amount: 18.00,
-  },
-  {
-    id: "B-1004",
-    stationName: "East End Quick Charge",
-    stationLocation: "789 Park Road, East District",
-    ownerName: "Sarah Wilson",
-    vehicleInfo: "Ford Mustang Mach-E",
-    startTime: "2025-12-16T11:00:00Z",
-    endTime: "2025-12-16T12:30:00Z",
-    duration: 90,
-    status: "cancelled",
-    paymentStatus: "refunded",
-    amount: 25.50,
-  },
-]
+// API request types
+interface CreateBookingRequest {
+  chargingStationId: string;
+  reservationDateTime: string;
+  durationMinutes: number;
+  notes: string;
+}
 
 type ActionDialogState = {
-  isOpen: boolean
-  action: "view" | "cancel" | null
-  booking: Booking | null
-}
+  isOpen: boolean;
+  action: "view" | "cancel" | "create" | null;
+  booking: Booking | null;
+};
 
 export default function BookingsManagementPage() {
-  const [bookings, setBookings] = useState<Booking[]>(sampleBookings)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<BookingStatus>(
+    BookingStatus.COMPLETED
+  );
   const [actionDialog, setActionDialog] = useState<ActionDialogState>({
     isOpen: false,
     action: null,
     booking: null,
-  })
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  // Filter bookings by search query and status
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesSearch = searchQuery === "" || 
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.stationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.vehicleInfo.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesStatus = statusFilter === "all" || booking.status === statusFilter
-    
-    return matchesSearch && matchesStatus
-  })
+      const response = await axiosInstance.get("/bookings");
+      // ✅ Ensure the data is an array
+      const bookingsData = Array.isArray(response.data)
+        ? response.data
+        : response.data.data;
 
-  const handleCancelBooking = () => {
-    if (!actionDialog.booking) return
-    
-    setBookings(
-      bookings.map((booking) =>
-        booking.id === actionDialog.booking?.id 
-          ? { ...booking, status: "cancelled", paymentStatus: "refunded" } 
-          : booking
-      )
-    )
-    closeDialog()
-  }
+      setBookings(bookingsData || []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An error occurred";
+      setError(message);
+      console.error("Error fetching bookings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load bookings on component mount
+  useEffect(() => {
+    fetchBookings();
+  }, []);
 
   const openViewDialog = (booking: Booking) => {
     setActionDialog({
       isOpen: true,
       action: "view",
       booking,
-    })
-  }
+    });
+  };
 
   const openCancelDialog = (booking: Booking) => {
     setActionDialog({
       isOpen: true,
       action: "cancel",
       booking,
-    })
-  }
+    });
+  };
 
   const closeDialog = () => {
     setActionDialog({
       isOpen: false,
       action: null,
       booking: null,
-    })
-  }
+    });
+  };
+
+  const retryFetch = () => {
+    fetchBookings();
+  };
+
+  // Filter bookings by search query and status
+  const filteredBookings = bookings.filter((booking) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.stationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.vehicleInfo.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus = booking.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
-    })
-  }
+    });
+  };
 
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-    })
+    });
+  };
+
+  const getStatusBadgeClasses = (status: BookingStatus) => {
+    switch (status) {
+      case BookingStatus.PENDING:
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      case BookingStatus.APPROVED:
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      case BookingStatus.IN_PROGRESS:
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case BookingStatus.COMPLETED:
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      case BookingStatus.CANCELLED:
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+      case BookingStatus.NO_SHOW:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+    }
+  };
+
+  if (loading && bookings.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading bookings...</p>
+        </div>
+      </div>
+    );
   }
 
-  const getStatusBadgeClasses = (status: string) => {
-    switch (status) {
-      case "upcoming":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-      case "in-progress":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-      case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-      case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-    }
+  if (error && bookings.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-destructive mb-2">Error loading bookings</div>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={retryFetch}>Retry</Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Booking Management</h2>
+        <h2 className="text-2xl font-bold tracking-tight">
+          Booking Management
+        </h2>
         <p className="text-muted-foreground">
           Manage all charging station bookings
         </p>
       </div>
+
+      {error && (
+        <div className="bg-destructive/15 text-destructive px-4 py-3 rounded-md">
+          <div className="flex justify-between items-center">
+            <span>{error}</span>
+            <Button variant="outline" size="sm" onClick={() => setError(null)}>
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-between items-center">
         <div className="flex space-x-2 items-center">
@@ -223,20 +244,45 @@ export default function BookingsManagementPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+
+          <Select
+            value={statusFilter as unknown as string}
+            onValueChange={setStatusFilter}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="upcoming">Upcoming</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value={String(BookingStatus.PENDING)}>
+                {BookingStatusLabel.PENDING}
+              </SelectItem>
+              <SelectItem value={String(BookingStatus.APPROVED)}>
+                {BookingStatusLabel.APPROVED}
+              </SelectItem>
+              <SelectItem value={String(BookingStatus.IN_PROGRESS)}>
+                {BookingStatusLabel.IN_PROGRESS}
+              </SelectItem>
+              <SelectItem value={String(BookingStatus.COMPLETED)}>
+                {BookingStatusLabel.COMPLETED}
+              </SelectItem>
+              <SelectItem value={String(BookingStatus.CANCELLED)}>
+                {BookingStatusLabel.CANCELLED}
+              </SelectItem>
+              <SelectItem value={String(BookingStatus.NO_SHOW)}>
+                {BookingStatusLabel.NO_SHOW}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
+
+        <Button
+          onClick={() =>
+            setActionDialog({ isOpen: true, action: "create", booking: null })
+          }
+        >
+          Create Booking
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -258,7 +304,9 @@ export default function BookingsManagementPage() {
             {filteredBookings.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="h-24 text-center">
-                  No bookings found.
+                  {bookings.length === 0
+                    ? "No bookings available."
+                    : "No bookings match your filters."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -268,7 +316,9 @@ export default function BookingsManagementPage() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{booking.stationName}</div>
-                      <div className="text-xs text-muted-foreground">{booking.stationLocation}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {booking.stationLocation}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{booking.ownerName}</TableCell>
@@ -281,40 +331,62 @@ export default function BookingsManagementPage() {
                       </div>
                       <div className="flex items-center text-xs text-muted-foreground">
                         <Clock className="h-3 w-3 mr-1" />
-                        <span>{formatTime(booking.startTime)} - {formatTime(booking.endTime)}</span>
+                        <span>
+                          {formatTime(booking.startTime)} -{" "}
+                          {formatTime(booking.endTime)}
+                        </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>{booking.duration} mins</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClasses(booking.status)}`}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClasses(
+                        booking.status
+                      )}`}
+                    >
+                      {
+                        BookingStatusLabel[
+                          Object.keys(BookingStatus)[
+                            Object.values(BookingStatus).indexOf(booking.status)
+                          ] as keyof typeof BookingStatus
+                        ]
+                      }
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    ${booking.amount.toFixed(2)}
-                    <div className="text-xs text-muted-foreground">{booking.paymentStatus}</div>
+                    ${booking.totalAmount}
+                    <div className="text-xs text-muted-foreground">
+                      {booking.paymentStatus}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openViewDialog(booking)}>
+                        <DropdownMenuItem
+                          onClick={() => openViewDialog(booking)}
+                        >
                           <CheckCircle className="mr-2 h-4 w-4" /> View Details
                         </DropdownMenuItem>
-                        {booking.status === "upcoming" && (
+                        {booking.status === BookingStatus.PENDING && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => openCancelDialog(booking)}
                               className="text-destructive focus:text-destructive"
                             >
-                              <XCircle className="mr-2 h-4 w-4" /> Cancel Booking
+                              <XCircle className="mr-2 h-4 w-4" /> Cancel
+                              Booking
                             </DropdownMenuItem>
                           </>
                         )}
@@ -329,7 +401,10 @@ export default function BookingsManagementPage() {
       </div>
 
       {/* Dialog for view/cancel actions */}
-      <Dialog open={actionDialog.isOpen} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
+      <Dialog
+        open={actionDialog.isOpen}
+        onOpenChange={(isOpen) => !isOpen && closeDialog()}
+      >
         <DialogContent className="sm:max-w-lg">
           {actionDialog.action === "view" && actionDialog.booking && (
             <>
@@ -347,24 +422,8 @@ export default function BookingsManagementPage() {
               </div>
             </>
           )}
-          
-          {actionDialog.action === "cancel" && actionDialog.booking && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Cancel Booking</DialogTitle>
-                <DialogDescription>
-                  This will cancel the booking and refund the payment.
-                </DialogDescription>
-              </DialogHeader>
-              <BookingCancellationConfirmation
-                bookingId={actionDialog.booking.id}
-                onConfirm={handleCancelBooking}
-                onCancel={closeDialog}
-              />
-            </>
-          )}
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

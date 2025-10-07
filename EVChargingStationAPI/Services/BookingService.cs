@@ -200,6 +200,53 @@ namespace EVChargingStationAPI.Services
         }
 
         /// <summary>
+        /// Retrieves all bookings from the system
+        /// </summary>
+        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync2()
+        {
+            try
+            {
+
+                var bookings = await _bookings.Find(_ => true).ToListAsync();
+                var bookingResponses = new List<BookingResponseDTO>();
+
+                foreach (var booking in bookings)
+                {
+                    var chargingStation = await _chargingStations
+                                    .Find(s => s.Id == booking.ChargingStationId)
+                                    .FirstOrDefaultAsync();
+
+                    bookingResponses.Add(new BookingResponseDTO
+                    {
+                        Id = booking.Id,
+                        EVOwnerNIC = booking.EVOwnerNIC,
+                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ReservationDateTime = booking.ReservationDateTime,
+                        DurationMinutes = booking.DurationMinutes,
+                        Status = booking.Status,
+                        TotalAmount = booking.TotalAmount,
+                        QRCode = booking.QRCode,
+                        CreatedAt = booking.CreatedAt
+                    });
+                }
+
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = true,
+                    Message = "Bookings retrieved successfully",
+                    Data = bookingResponses
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving bookings"
+                };
+            }
+        }
+        /// <summary>
         /// Retrieves bookings for a specific EV owner
         /// </summary>
         public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetBookingsByEVOwnerAsync(string evOwnerNIC)
