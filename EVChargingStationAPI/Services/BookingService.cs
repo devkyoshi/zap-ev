@@ -170,7 +170,7 @@ namespace EVChargingStationAPI.Services
                 else
                 {
                     // Station Operator: must have assigned stations
-                    if (user.ChargingStationIds == null || user.ChargingStationIds.Count == 0)
+                    if (user.ChargingStationIds == null || !user.ChargingStationIds.Any())
                     {
                         return new ApiResponseDTO<List<BookingResponseDTO>>
                         {

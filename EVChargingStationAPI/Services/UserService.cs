@@ -302,7 +302,7 @@ namespace EVChargingStationAPI.Services
                 var unassignedOperators = await _users.Find(u =>
                     u.Role == UserRole.StationOperator &&
                     u.IsActive &&
-                    (u.ChargingStationId == null || u.ChargingStationId == "")
+                    (u.ChargingStationIds == null || !u.ChargingStationIds.Any())
                 ).ToListAsync();
 
                 // Remove password hashes from response
