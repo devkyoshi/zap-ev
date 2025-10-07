@@ -90,6 +90,8 @@ GET/PUT/DELETE /api/users
 
 PATCH /api/users/{id}/status
 
+GET /api/users/unassigned-operators
+
 🚗 EV Owners
 
 POST /api/evowners/register
@@ -111,6 +113,12 @@ POST /api/chargingstations/nearby
 PATCH /api/chargingstations/{id}/slots
 
 PATCH /api/chargingstations/{id}/status
+
+POST /api/chargingstations/{stationId}/assign-operator
+
+POST /api/chargingstations/{stationId}/revoke-operator
+
+GET /api/chargingstations/{stationId}/assigned-users
 
 📅 Bookings
 

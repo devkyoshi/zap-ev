@@ -91,7 +91,17 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
-                var result = await _bookingService.GetAllBookingsAsync();
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _bookingService.GetAllBookingsAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -257,7 +267,17 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
-                var result = await _bookingService.ApproveBookingAsync(id);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _bookingService.ApproveBookingAsync(id, userId);
 
                 if (result.Success)
                 {
@@ -285,7 +305,17 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
-                var result = await _bookingService.StartBookingAsync(id);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _bookingService.StartBookingAsync(id, userId);
 
                 if (result.Success)
                 {
@@ -313,7 +343,17 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
-                var result = await _bookingService.CompleteBookingAsync(id);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _bookingService.CompleteBookingAsync(id, userId);
 
                 if (result.Success)
                 {

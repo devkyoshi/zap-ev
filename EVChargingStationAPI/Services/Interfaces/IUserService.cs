@@ -21,5 +21,6 @@ namespace EVChargingStationAPI.Services
         Task<ApiResponseDTO<User>> UpdateUserAsync(string id, User user);
         Task<ApiResponseDTO<bool>> DeleteUserAsync(string id);
         Task<ApiResponseDTO<bool>> ActivateDeactivateUserAsync(string id, bool isActive);
+        Task<ApiResponseDTO<List<User>>> GetUnassignedStationOperatorsAsync();
     }
 }

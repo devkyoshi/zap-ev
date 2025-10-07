@@ -20,6 +20,7 @@ namespace EVChargingStationAPI.Services
         private readonly IMongoCollection<Booking> _bookings;
         private readonly IMongoCollection<ChargingStation> _chargingStations;
         private readonly IMongoCollection<EVOwner> _evOwners;
+        private readonly IMongoCollection<User> _users;
         private readonly IQRService _qrService;
 
         /// <summary>
@@ -31,6 +32,7 @@ namespace EVChargingStationAPI.Services
             _bookings = database.GetCollection<Booking>("Bookings");
             _chargingStations = database.GetCollection<ChargingStation>("ChargingStations");
             _evOwners = database.GetCollection<EVOwner>("EVOwners");
+            _users = database.GetCollection<User>("Users");
             _qrService = qrService;
         }
 
@@ -143,11 +145,23 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Retrieves all bookings from the system
         /// </summary>
-        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync()
+        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync(string userId)
         {
             try
             {
-                var bookings = await _bookings.Find(_ => true).ToListAsync();
+                // Get user's charging station
+                var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                if (user == null || string.IsNullOrEmpty(user.ChargingStationId))
+                {
+                    return new ApiResponseDTO<List<BookingResponseDTO>>
+                    {
+                        Success = false,
+                        Message = "User not found or not assigned to a charging station"
+                    };
+                }
+
+                // Only get bookings for user's charging station
+                var bookings = await _bookings.Find(b => b.ChargingStationId == user.ChargingStationId).ToListAsync();
                 var bookingResponses = new List<BookingResponseDTO>();
 
                 foreach (var booking in bookings)
@@ -436,6 +450,9 @@ namespace EVChargingStationAPI.Services
                     };
                 }
 
+                // Store the original status BEFORE updating
+                var originalStatus = booking.Status;
+
                 var update = Builders<Booking>.Update
                     .Set(b => b.Status, BookingStatus.Cancelled)
                     .Set(b => b.UpdatedAt, DateTime.UtcNow);
@@ -444,6 +461,19 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // If booking was approved, return the slot
+                    if (originalStatus == BookingStatus.Approved || originalStatus == BookingStatus.InProgress)
+                    {
+                        var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                        if (chargingStation != null && chargingStation.AvailableSlots < chargingStation.TotalSlots)
+                        {
+                            var slotUpdate = Builders<ChargingStation>.Update
+                                .Set(s => s.AvailableSlots, chargingStation.AvailableSlots + 1)
+                                .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                            await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                        }
+                    }
+
                     return new ApiResponseDTO<bool>
                     {
                         Success = true,
@@ -471,10 +501,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Approves a pending booking and generates QR code
         /// </summary>
-        public async Task<ApiResponseDTO<BookingResponseDTO>> ApproveBookingAsync(string id)
+        public async Task<ApiResponseDTO<BookingResponseDTO>> ApproveBookingAsync(string id, string userId)
         {
             try
             {
+                // Check authorization
+                if (!await CanUserAccessBooking(userId, id))
+                {
+                    return new ApiResponseDTO<BookingResponseDTO>
+                    {
+                        Success = false,
+                        Message = "You don't have permission to approve this booking"
+                    };
+                }
+
                 var booking = await _bookings.Find(b => b.Id == id && b.Status == BookingStatus.Pending).FirstOrDefaultAsync();
 
                 if (booking == null)
@@ -498,14 +538,24 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // Reduce available slots by 1
+                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                    if (chargingStation != null && chargingStation.AvailableSlots > 0)
+                    {
+                        var slotUpdate = Builders<ChargingStation>.Update
+                            .Set(s => s.AvailableSlots, chargingStation.AvailableSlots - 1)
+                            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                        await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                    }
+
                     var updatedBooking = await _bookings.Find(b => b.Id == id).FirstOrDefaultAsync();
-                    var chargingStation = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
+                    var chargingStationForResponse = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
 
                     var responseDto = new BookingResponseDTO
                     {
                         Id = updatedBooking.Id,
                         EVOwnerNIC = updatedBooking.EVOwnerNIC,
-                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ChargingStationName = chargingStationForResponse?.Name ?? "Unknown Station",
                         ReservationDateTime = updatedBooking.ReservationDateTime,
                         DurationMinutes = updatedBooking.DurationMinutes,
                         Status = updatedBooking.Status,
@@ -541,10 +591,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Starts a booking session
         /// </summary>
-        public async Task<ApiResponseDTO<BookingResponseDTO>> StartBookingAsync(string id)
+        public async Task<ApiResponseDTO<BookingResponseDTO>> StartBookingAsync(string id, string userId)
         {
             try
             {
+                // Check authorization
+                if (!await CanUserAccessBooking(userId, id))
+                {
+                    return new ApiResponseDTO<BookingResponseDTO>
+                    {
+                        Success = false,
+                        Message = "You don't have permission to start this booking"
+                    };
+                }
+
                 var booking = await _bookings.Find(b => b.Id == id && b.Status == BookingStatus.Approved).FirstOrDefaultAsync();
 
                 if (booking == null)
@@ -608,10 +668,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Completes a booking session
         /// </summary>
-        public async Task<ApiResponseDTO<BookingResponseDTO>> CompleteBookingAsync(string id)
+        public async Task<ApiResponseDTO<BookingResponseDTO>> CompleteBookingAsync(string id, string userId)
         {
             try
             {
+                // Check authorization
+                if (!await CanUserAccessBooking(userId, id))
+                {
+                    return new ApiResponseDTO<BookingResponseDTO>
+                    {
+                        Success = false,
+                        Message = "You don't have permission to complete this booking"
+                    };
+                }
+
                 var booking = await _bookings.Find(b => b.Id == id && b.Status == BookingStatus.InProgress).FirstOrDefaultAsync();
 
                 if (booking == null)
@@ -632,14 +702,24 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // Increase available slots by 1
+                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                    if (chargingStation != null && chargingStation.AvailableSlots < chargingStation.TotalSlots)
+                    {
+                        var slotUpdate = Builders<ChargingStation>.Update
+                            .Set(s => s.AvailableSlots, chargingStation.AvailableSlots + 1)
+                            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                        await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                    }
+
                     var updatedBooking = await _bookings.Find(b => b.Id == id).FirstOrDefaultAsync();
-                    var chargingStation = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
+                    var chargingStationForResponse = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
 
                     var responseDto = new BookingResponseDTO
                     {
                         Id = updatedBooking.Id,
                         EVOwnerNIC = updatedBooking.EVOwnerNIC,
-                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ChargingStationName = chargingStationForResponse?.Name ?? "Unknown Station",
                         ReservationDateTime = updatedBooking.ReservationDateTime,
                         DurationMinutes = updatedBooking.DurationMinutes,
                         Status = updatedBooking.Status,
@@ -769,6 +849,20 @@ namespace EVChargingStationAPI.Services
                     Message = "An error occurred while retrieving booking history"
                 };
             }
+        }
+
+        /// <summary>
+        /// Checks if a user can access a specific booking based on their associated charging station
+        /// </summary>
+        private async Task<bool> CanUserAccessBooking(string userId, string bookingId)
+        {
+            var booking = await _bookings.Find(b => b.Id == bookingId).FirstOrDefaultAsync();
+            if (booking == null) return false;
+
+            var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (user == null) return false;
+
+            return user.ChargingStationId == booking.ChargingStationId;
         }
     }
 }
