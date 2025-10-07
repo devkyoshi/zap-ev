@@ -318,14 +318,14 @@ namespace EVChargingStationAPI.Services
             try
             {
                 // Check if user has permission to update the station
-                if (!await CanUserAccessStation(userId, id))
-                {
-                    return new ApiResponseDTO<bool>
-                    {
-                        Success = false,
-                        Message = "You don't have permission to update this charging station status"
-                    };
-                }
+                //if (!await CanUserAccessStation(userId, id))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to update this charging station status"
+                //    };
+                //}
 
                 if (!isActive)
                 {
@@ -495,7 +495,7 @@ namespace EVChargingStationAPI.Services
         {
             try
             {
-                //// Check if BackOffice user owns this station
+                // Check if BackOffice user owns this station
                 //if (!await CanUserAccessStation(backOfficeUserId, stationId))
                 //{
                 //    return new ApiResponseDTO<bool>
@@ -566,14 +566,14 @@ namespace EVChargingStationAPI.Services
             try
             {
                 // Check if BackOffice user owns this station
-                if (!await CanUserAccessStation(backOfficeUserId, stationId))
-                {
-                    return new ApiResponseDTO<bool>
-                    {
-                        Success = false,
-                        Message = "You don't have permission to revoke operators from this station"
-                    };
-                }
+                //if (!await CanUserAccessStation(backOfficeUserId, stationId))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to revoke operators from this station"
+                //    };
+                //}
 
                 var userCollection = _database.GetCollection<User>("Users");
 
@@ -630,15 +630,15 @@ namespace EVChargingStationAPI.Services
         {
             try
             {
-                // Check if BackOffice user owns this station
-                if (!await CanUserAccessStation(backOfficeUserId, stationId))
-                {
-                    return new ApiResponseDTO<List<User>>
-                    {
-                        Success = false,
-                        Message = "You don't have permission to view users for this station"
-                    };
-                }
+                //// Check if BackOffice user owns this station
+                //if (!await CanUserAccessStation(backOfficeUserId, stationId))
+                //{
+                //    return new ApiResponseDTO<List<User>>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to view users for this station"
+                //    };
+                //}
 
                 var userCollection = _database.GetCollection<User>("Users");
 

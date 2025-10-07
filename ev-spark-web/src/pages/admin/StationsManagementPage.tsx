@@ -14,6 +14,8 @@ import {
   Trash2,
   Edit,
   MoreHorizontal,
+  UserPlus,
+  UserMinus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -71,6 +73,7 @@ interface Station {
   amenities: string[];
   createdAt: string;
   updatedAt: string;
+  assignedOperators?: User[];
 }
 
 interface ApiResponse {
@@ -81,10 +84,28 @@ interface ApiResponse {
 }
 type ActionDialogState = {
   isOpen: boolean;
-  action: "create" | "edit" | "delete" | "updateSlots" | null;
+  action:
+    | "create"
+    | "edit"
+    | "delete"
+    | "updateSlots"
+    | "revokeOperator"
+    | "assignOperator"
+    | null;
   station: Station | null;
 };
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: number;
+  isActive: boolean;
+}
 
+interface StationWithOperators extends Station {
+  assignedOperators?: User[];
+}
 export default function StationsDisplayPage() {
   const [stations, setStations] = useState<Station[]>([]);
   const [filteredStations, setFilteredStations] = useState<Station[]>([]);
@@ -98,7 +119,10 @@ export default function StationsDisplayPage() {
     station: null,
   });
   const [slotUpdateValue, setSlotUpdateValue] = useState<string>("");
-
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedOperatorId, setSelectedOperatorId] = useState<string>("");
+  const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
+  const [loadingAssignedUsers, setLoadingAssignedUsers] = useState(false);
   useEffect(() => {
     const fetchStations = async () => {
       try {
@@ -110,8 +134,30 @@ export default function StationsDisplayPage() {
         const result: ApiResponse = response.data;
 
         if (result.success && Array.isArray(result.data)) {
-          setStations(result.data);
-          setFilteredStations(result.data);
+          const stationsWithOperators = await Promise.all(
+            result.data.map(async (station) => {
+              try {
+                const assignedUsersResponse = await axiosInstance.get(
+                  `/ChargingStations/${station.id}/assigned-users`
+                );
+                if (assignedUsersResponse.data.success) {
+                  return {
+                    ...station,
+                    assignedOperators: assignedUsersResponse.data.data || [],
+                  };
+                }
+              } catch (err) {
+                console.error(
+                  `Error fetching operators for station ${station.id}:`,
+                  err
+                );
+              }
+              return { ...station, assignedOperators: [] };
+            })
+          );
+
+          setStations(stationsWithOperators);
+          setFilteredStations(stationsWithOperators);
         } else {
           throw new Error("Invalid API response format");
         }
@@ -129,6 +175,106 @@ export default function StationsDisplayPage() {
 
     fetchStations();
   }, []);
+  // GET ASSIGNED USERS
+  const fetchAssignedUsers = async (stationId: string) => {
+    try {
+      setLoadingAssignedUsers(true);
+      const response = await axiosInstance.get(
+        `/ChargingStations/${stationId}/assigned-users`
+      );
+
+      if (response.data.success) {
+        setAssignedUsers(response.data.data || []);
+      } else {
+        throw new Error(
+          response.data.message || "Failed to fetch assigned users"
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching assigned users:", err);
+      setAssignedUsers([]);
+    } finally {
+      setLoadingAssignedUsers(false);
+    }
+  };
+  // ASSIGN OPERATOR
+  const handleAssignOperator = async (
+    stationId: string,
+    operatorUserId: string
+  ) => {
+    try {
+      const response = await axiosInstance.post(
+        `/ChargingStations/${stationId}/assign-operator?operatorUserId=${operatorUserId}`
+      );
+
+      if (response.data.success) {
+        await fetchAssignedUsers(stationId);
+
+        // Refresh stations or update local state
+        const fetchStations = async () => {
+          const response = await axiosInstance.get("/ChargingStations");
+          const result: ApiResponse = response.data;
+          if (result.success && Array.isArray(result.data)) {
+            setStations(result.data);
+            setFilteredStations(result.data);
+          }
+        };
+        await fetchStations();
+        closeDialog();
+      } else {
+        throw new Error(response.data.message || "Failed to assign operator");
+      }
+    } catch (err) {
+      console.error("Error assigning operator:", err);
+      setError("Failed to assign operator");
+    }
+  };
+
+  // REVOKE OPERATOR
+  const handleRevokeOperator = async (
+    stationId: string,
+    operatorUserId: string
+  ) => {
+    try {
+      const response = await axiosInstance.post(
+        `/ChargingStations/${stationId}/revoke-operator?operatorUserId=${operatorUserId}`
+      );
+
+      if (response.data.success) {
+        await fetchAssignedUsers(stationId);
+        // Refresh stations or update local state
+        const fetchStations = async () => {
+          const response = await axiosInstance.get("/ChargingStations");
+          const result: ApiResponse = response.data;
+          if (result.success && Array.isArray(result.data)) {
+            setStations(result.data);
+            setFilteredStations(result.data);
+          }
+        };
+        await fetchStations();
+        closeDialog();
+      } else {
+        throw new Error(response.data.message || "Failed to revoke operator");
+      }
+    } catch (err) {
+      console.error("Error revoking operator:", err);
+      setError("Failed to revoke operator");
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axiosInstance.get("/Users");
+      if (response.data.success) {
+        setUsers(response.data.data);
+      } else {
+        throw new Error(response.data.message || "Failed to fetch users");
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError("Failed to fetch users");
+    }
+  };
 
   const handleUpdateSlotAvailability = async (
     stationId: string,
@@ -397,8 +543,31 @@ export default function StationsDisplayPage() {
       action: null,
       station: null,
     });
+    setSlotUpdateValue("");
+    setSelectedOperatorId("");
   };
 
+  const openAssignOperatorDialog = async (station: Station) => {
+    setSelectedOperatorId("");
+    setActionDialog({
+      isOpen: true,
+      action: "assignOperator",
+      station,
+    });
+    await fetchUsers();
+    await fetchAssignedUsers(station.id);
+  };
+
+  const openRevokeOperatorDialog = async (station: Station) => {
+    setSelectedOperatorId("");
+    setActionDialog({
+      isOpen: true,
+      action: "revokeOperator",
+      station,
+    });
+    // Fetch users when opening the dialog
+    await Promise.all([fetchAssignedUsers(station.id)]);
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -480,6 +649,21 @@ export default function StationsDisplayPage() {
                           <Edit className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => openAssignOperatorDialog(station)}
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" /> Assign
+                            Operator
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openRevokeOperatorDialog(station)}
+                          >
+                            <UserMinus className="mr-2 h-4 w-4" /> Revoke
+                            Operator
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
                         <DropdownMenuItem
                           onClick={() => openDeleteDialog(station)}
                           className="text-destructive focus:text-destructive"
@@ -527,7 +711,6 @@ export default function StationsDisplayPage() {
                 {/* Pricing */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
                     <span className="text-sm">Price per hour</span>
                   </div>
                   <span className="font-semibold">
@@ -571,6 +754,57 @@ export default function StationsDisplayPage() {
                   </div>
                 )}
 
+                {/* Assigned Operators */}
+                {station.assignedOperators &&
+                  station.assignedOperators.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Assigned Operators</p>
+                      <div className="space-y-2">
+                        {station.assignedOperators.map((operator) => (
+                          <div
+                            key={operator.id}
+                            className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div className="w-6 h-6 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                                <span className="text-xs font-medium text-blue-600 dark:text-blue-300">
+                                  {operator.email?.charAt(0)}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {operator.firstName} {operator.lastName}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {operator.email}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                            >
+                              Operator
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {/* If no operators assigned, show a message (optional) */}
+                {station.assignedOperators &&
+                  station.assignedOperators.length === 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Assigned Operators</p>
+                      <div className="text-center py-3 border border-dashed rounded-md">
+                        <UserMinus className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
+                        <p className="text-xs text-muted-foreground">
+                          No operators assigned
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 {/* Station Type */}
                 <div className="pt-2 border-t">
                   <Badge variant="outline">Type {station.type} Charger</Badge>
@@ -676,6 +910,124 @@ export default function StationsDisplayPage() {
                     Cancel
                   </Button>
                   <Button onClick={handleSlotUpdateSubmit}>Update Slots</Button>
+                </div>
+              </div>
+            </>
+          )}
+          {actionDialog.action === "assignOperator" && actionDialog.station && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Assign Station Operator</DialogTitle>
+                <DialogDescription>
+                  Assign an operator to {actionDialog.station.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="operator"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Select Operator
+                  </label>
+                  <select
+                    id="operator"
+                    value={selectedOperatorId}
+                    onChange={(e) => setSelectedOperatorId(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">Select an operator</option>
+                    {users
+                      .filter((user) => user.role === 2 && user.isActive)
+                      .map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.firstName} {user.lastName} ({user.email})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={closeDialog}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      handleAssignOperator(
+                        actionDialog.station!.id,
+                        selectedOperatorId
+                      )
+                    }
+                    disabled={!selectedOperatorId}
+                  >
+                    Assign Operator
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Revoke Operator Dialog */}
+          {actionDialog.action === "revokeOperator" && actionDialog.station && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Revoke Station Operator</DialogTitle>
+                <DialogDescription>
+                  Revoke an operator from {actionDialog.station.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="operator"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Select Operator to Revoke
+                  </label>
+                  {loadingAssignedUsers ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Loading assigned operators...
+                      </p>
+                    </div>
+                  ) : assignedUsers.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No operators assigned to this station
+                    </div>
+                  ) : (
+                    <select
+                      id="operator"
+                      value={selectedOperatorId}
+                      onChange={(e) => setSelectedOperatorId(e.target.value)}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">Select an operator</option>
+                      {assignedUsers
+                        .filter((user) => user.role === 2 && user.isActive)
+                        .map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.firstName} {user.lastName} ({user.email})
+                          </option>
+                        ))}
+                    </select>
+                  )}
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={closeDialog}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      handleRevokeOperator(
+                        actionDialog.station!.id,
+                        selectedOperatorId
+                      )
+                    }
+                    disabled={!selectedOperatorId || assignedUsers.length === 0}
+                    variant="destructive"
+                  >
+                    Revoke Operator
+                  </Button>
                 </div>
               </div>
             </>

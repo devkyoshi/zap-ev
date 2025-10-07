@@ -106,6 +106,7 @@ const LoginPage = () => {
         <CardDescription>
           Enter your credentials to access your account
         </CardDescription>
+        <CardDescription>test@gmail.com </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
