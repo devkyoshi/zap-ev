@@ -53,6 +53,7 @@ public class ProfileFragment extends Fragment {
     private RecyclerView recyclerViewVehicles;
     private View emptyVehicleState;
     private ScrollView scrollView;
+    private com.google.android.material.card.MaterialCardView cardChangePassword;
     
     private AuthService authService;
     private ProfileService profileService;
@@ -117,6 +118,7 @@ public class ProfileFragment extends Fragment {
         profileName = view.findViewById(R.id.profileName);
         profileTitle = view.findViewById(R.id.profileTitle);
         profileDescription = view.findViewById(R.id.profileDescription);
+        cardChangePassword = view.findViewById(R.id.cardChangePassword);
         
         // Find vehicle information section (the LinearLayout containing the heading and add button)
         vehicleInformationSection = findVehicleInformationSection(view);
@@ -171,6 +173,11 @@ public class ProfileFragment extends Fragment {
         btnAddVehicle.setOnClickListener(v -> {
             hideKeyboard();
             showVehicleDialog(null, -1);
+        });
+        
+        cardChangePassword.setOnClickListener(v -> {
+            hideKeyboard();
+            showChangePasswordDialog();
         });
         
         // Hide keyboard when touching outside input fields
@@ -1129,5 +1136,122 @@ public class ProfileFragment extends Fragment {
         if (profileName != null) {
             profileName.setText(userName != null ? userName : "Operator");
         }
+    }
+
+    /**
+     * Show change password dialog
+     */
+    private void showChangePasswordDialog() {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_change_password, null);
+        
+        TextInputEditText etCurrentPassword = dialogView.findViewById(R.id.etCurrentPassword);
+        TextInputEditText etNewPassword = dialogView.findViewById(R.id.etNewPassword);
+        TextInputEditText etConfirmPassword = dialogView.findViewById(R.id.etConfirmPassword);
+        Button btnChangePassword = dialogView.findViewById(R.id.btnChangePassword);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
+        builder.setView(dialogView);
+        
+        AlertDialog dialog = builder.create();
+        
+        btnChangePassword.setOnClickListener(v -> {
+            if (validateChangePasswordForm(etCurrentPassword, etNewPassword, etConfirmPassword)) {
+                String currentPassword = etCurrentPassword.getText().toString().trim();
+                String newPassword = etNewPassword.getText().toString().trim();
+                
+                // Disable button and show loading
+                btnChangePassword.setEnabled(false);
+                btnChangePassword.setText("Changing...");
+                
+                authService.changePassword(currentPassword, newPassword, new AuthService.AuthCallback() {
+                    @Override
+                    public void onSuccess(AuthResponse response) {
+                        if (getActivity() != null && isAdded()) {
+                            getActivity().runOnUiThread(() -> {
+                                dialog.dismiss();
+                                Toast.makeText(getContext(), "Password changed successfully! Please log in again.", Toast.LENGTH_LONG).show();
+                                
+                                // Navigate to login screen since all sessions are invalidated
+                                Intent intent = new Intent(getActivity(), LoginActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(intent);
+                                getActivity().finish();
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null && isAdded()) {
+                            getActivity().runOnUiThread(() -> {
+                                btnChangePassword.setEnabled(true);
+                                btnChangePassword.setText("Change Password");
+                                
+                                String errorMessage = "Failed to change password";
+                                if (error != null && !error.isEmpty()) {
+                                    errorMessage += ": " + error;
+                                }
+                                Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        
+        dialog.show();
+    }
+
+    /**
+     * Validate change password form
+     */
+    private boolean validateChangePasswordForm(TextInputEditText etCurrentPassword, 
+                                             TextInputEditText etNewPassword, 
+                                             TextInputEditText etConfirmPassword) {
+        boolean isValid = true;
+        
+        // Clear previous errors
+        etCurrentPassword.setError(null);
+        etNewPassword.setError(null);
+        etConfirmPassword.setError(null);
+        
+        String currentPassword = etCurrentPassword.getText().toString().trim();
+        if (currentPassword.isEmpty()) {
+            etCurrentPassword.setError("Current password is required");
+            isValid = false;
+        }
+        
+        String newPassword = etNewPassword.getText().toString().trim();
+        if (newPassword.isEmpty()) {
+            etNewPassword.setError("New password is required");
+            isValid = false;
+        } else if (newPassword.length() < 8) {
+            etNewPassword.setError("Password must be at least 8 characters");
+            isValid = false;
+        } else if (!isValidPassword(newPassword)) {
+            etNewPassword.setError("Password must contain uppercase, lowercase, number, and special character");
+            isValid = false;
+        }
+        
+        String confirmPassword = etConfirmPassword.getText().toString().trim();
+        if (confirmPassword.isEmpty()) {
+            etConfirmPassword.setError("Confirm password is required");
+            isValid = false;
+        } else if (!newPassword.equals(confirmPassword)) {
+            etConfirmPassword.setError("Passwords do not match");
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+
+    /**
+     * Check if password meets requirements
+     */
+    private boolean isValidPassword(String password) {
+        return password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$");
     }
 }

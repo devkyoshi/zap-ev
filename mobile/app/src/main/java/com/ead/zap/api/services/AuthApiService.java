@@ -53,4 +53,14 @@ public interface AuthApiService {
      */
     @POST(ApiConfig.EVOwners.REGISTER)
     Call<ApiResponse<EVOwner>> registerEVOwner(@Body EVOwnerRegistrationRequest request);
+
+    /**
+     * Change password for authenticated user
+     * POST /api/auth/change-password
+     */
+    @POST(ApiConfig.Auth.CHANGE_PASSWORD)
+    Call<ApiResponse<Void>> changePassword(
+        @Header("Authorization") String authToken,
+        @Body ChangePasswordRequest request
+    );
 }

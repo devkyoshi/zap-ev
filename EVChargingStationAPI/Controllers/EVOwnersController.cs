@@ -39,13 +39,26 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
+                // Log registration attempt
+                Console.WriteLine($"EV Owner registration attempt:");
+                Console.WriteLine($"  NIC: {createEVOwnerDto?.NIC ?? "null"}");
+                Console.WriteLine($"  FirstName: {createEVOwnerDto?.FirstName ?? "null"}");
+                Console.WriteLine($"  LastName: {createEVOwnerDto?.LastName ?? "null"}");
+                Console.WriteLine($"  Email: {createEVOwnerDto?.Email ?? "null"}");
+                Console.WriteLine($"  PhoneNumber: {createEVOwnerDto?.PhoneNumber ?? "null"}");
+                Console.WriteLine($"  Password: {(string.IsNullOrEmpty(createEVOwnerDto?.Password) ? "empty" : "***")}");
+                Console.WriteLine($"  VehicleDetails count: {createEVOwnerDto?.VehicleDetails?.Count ?? 0}");
+                
                 if (!ModelState.IsValid)
                 {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList();
+                    Console.WriteLine($"Validation errors: {string.Join(", ", errors)}");
+                    
                     return BadRequest(new ApiResponseDTO<object>
                     {
                         Success = false,
                         Message = "Invalid request data",
-                        Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
+                        Errors = errors
                     });
                 }
 

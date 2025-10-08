@@ -41,6 +41,7 @@ public class ApiConfig {
         public static final String LOGIN_EV_OWNER = "auth/login/evowner";
         public static final String REFRESH = "auth/refresh";
         public static final String LOGOUT = "auth/logout";
+        public static final String CHANGE_PASSWORD = "auth/change-password";
     }
     
     // User endpoints (BackOffice only - not used in mobile app)

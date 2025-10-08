@@ -142,6 +142,9 @@ public class AuthService {
      * Register new EV Owner
      */
     public void registerEVOwner(EVOwnerRegistrationRequest registrationRequest, RegistrationCallback callback) {
+        Log.d(TAG, "Making EV Owner registration request to: " + 
+            com.ead.zap.config.ApiConfig.getBaseUrl() + com.ead.zap.config.ApiConfig.EVOwners.REGISTER);
+        
         Call<ApiResponse<EVOwner>> call = authApiService.registerEVOwner(registrationRequest);
         call.enqueue(new Callback<ApiResponse<EVOwner>>() {
             @Override
@@ -163,8 +166,34 @@ public class AuthService {
                         callback.onError(error);
                     }
                 } else {
-                    String error = "Registration failed: " + response.message();
-                    Log.e(TAG, error);
+                    // Handle detailed error response for 400, 422, etc.
+                    String error = "Registration failed";
+                    
+                    if (response.errorBody() != null) {
+                        try {
+                            String errorBody = response.errorBody().string();
+                            Log.e(TAG, "Error Response Body: " + errorBody);
+                            
+                            // Try to parse error body as ApiResponse
+                            com.google.gson.Gson gson = new com.google.gson.Gson();
+                            com.google.gson.reflect.TypeToken<ApiResponse<Object>> typeToken = 
+                                new com.google.gson.reflect.TypeToken<ApiResponse<Object>>() {};
+                            ApiResponse<Object> errorResponse = gson.fromJson(errorBody, typeToken.getType());
+                            
+                            if (errorResponse != null) {
+                                error = errorResponse.getErrorMessage();
+                            } else {
+                                error = "Registration failed (HTTP " + response.code() + "): " + response.message();
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to parse error response", e);
+                            error = "Registration failed (HTTP " + response.code() + "): " + response.message();
+                        }
+                    } else {
+                        error = "Registration failed (HTTP " + response.code() + "): " + response.message();
+                    }
+                    
+                    Log.e(TAG, "Registration error: " + error);
                     callback.onError(error);
                 }
             }
@@ -314,6 +343,54 @@ public class AuthService {
      */
     public boolean isTokenExpired() {
         return preferenceManager.isAccessTokenExpired();
+    }
+
+    /**
+     * Change password for authenticated user
+     */
+    public void changePassword(String currentPassword, String newPassword, AuthCallback callback) {
+        String accessToken = preferenceManager.getAccessToken();
+        if (accessToken == null || accessToken.isEmpty()) {
+            callback.onError("User not authenticated");
+            return;
+        }
+
+        ChangePasswordRequest request = new ChangePasswordRequest(currentPassword, newPassword);
+        String authHeader = "Bearer " + accessToken;
+
+        Call<ApiResponse<Void>> call = authApiService.changePassword(authHeader, request);
+        call.enqueue(new Callback<ApiResponse<Void>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse<Void> apiResponse = response.body();
+                    
+                    if (apiResponse.isSuccess()) {
+                        Log.d(TAG, "Password changed successfully");
+                        
+                        // Clear local authentication data since all sessions are invalidated
+                        clearLocalData();
+                        
+                        callback.onSuccess(null);
+                    } else {
+                        String error = apiResponse.getErrorMessage();
+                        Log.e(TAG, "Password change failed: " + error);
+                        callback.onError(error);
+                    }
+                } else {
+                    String error = "Password change failed: " + response.message();
+                    Log.e(TAG, error);
+                    callback.onError(error);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                String error = "Network error: " + t.getMessage();
+                Log.e(TAG, error, t);
+                callback.onError(error);
+            }
+        });
     }
 
     /**
