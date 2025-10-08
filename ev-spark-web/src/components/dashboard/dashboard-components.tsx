@@ -1,48 +1,48 @@
-import { useState } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { 
-  UserCircle,
-  LogOut, 
-  ChevronDown,
-  Menu,
-  X
-} from "lucide-react"
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { UserCircle, LogOut, ChevronDown, Menu, X } from "lucide-react";
 
-import { ThemeToggle } from "../theme-toggle"
-import { Button } from "../ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
-import { 
+import { ThemeToggle } from "../theme-toggle";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger 
-} from "../ui/dropdown-menu"
-import { Separator } from "../ui/separator"
-import { cn } from "@/lib/utils"
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { Separator } from "../ui/separator";
+import { cn } from "@/lib/utils";
 
 type NavItem = {
-  label: string
-  href: string
-  icon: React.ElementType
-}
+  label: string;
+  href: string;
+  icon: React.ElementType;
+};
 
 interface UserNavProps {
-  userName: string
-  userEmail: string
-  userRole: string
-  userImage?: string
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  userImage?: string;
 }
 
-export function UserNav({ userName, userEmail, userRole, userImage }: UserNavProps) {
-  const navigate = useNavigate()
-  
+export function UserNav({
+  userName,
+  userEmail,
+  userRole,
+  userImage,
+}: UserNavProps) {
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    // TODO: Implement logout functionality
-    console.log("Logging out...")
-    navigate("/auth/login")
-  }
-  
+    localStorage.removeItem("authToken");
+    localStorage.clear();
+
+    navigate("/auth/login");
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -59,13 +59,11 @@ export function UserNav({ userName, userEmail, userRole, userImage }: UserNavPro
           <p className="text-xs leading-none text-muted-foreground">
             {userEmail}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {userRole}
-          </p>
+          <p className="text-xs text-muted-foreground">{userRole}</p>
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to="/profile" className="cursor-pointer">
+          <Link to="/admin/profile" className="cursor-pointer">
             <UserCircle className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </Link>
@@ -77,27 +75,32 @@ export function UserNav({ userName, userEmail, userRole, userImage }: UserNavPro
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
 interface MobileSidebarProps {
-  isOpen: boolean
-  onClose: () => void
-  navItems: NavItem[]
-  currentPath: string
+  isOpen: boolean;
+  onClose: () => void;
+  navItems: NavItem[];
+  currentPath: string;
 }
 
-export function MobileSidebar({ isOpen, onClose, navItems, currentPath }: MobileSidebarProps) {
+export function MobileSidebar({
+  isOpen,
+  onClose,
+  navItems,
+  currentPath,
+}: MobileSidebarProps) {
   return (
     <>
       {/* Mobile Sidebar Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
-      
+
       {/* Mobile Sidebar */}
       <div
         className={`fixed top-0 bottom-0 left-0 z-50 w-3/4 max-w-xs bg-sidebar transform transition-transform duration-300 ease-in-out md:hidden ${
@@ -110,12 +113,12 @@ export function MobileSidebar({ isOpen, onClose, navItems, currentPath }: Mobile
             <X className="h-5 w-5" />
           </Button>
         </div>
-        
+
         <div className="py-4 px-2 space-y-1">
           {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = currentPath === item.href
-            
+            const Icon = item.icon;
+            const isActive = currentPath === item.href;
+
             return (
               <Link
                 key={item.href}
@@ -131,61 +134,73 @@ export function MobileSidebar({ isOpen, onClose, navItems, currentPath }: Mobile
                 <Icon className="h-5 w-5" />
                 <span>{item.label}</span>
               </Link>
-            )
+            );
           })}
         </div>
       </div>
     </>
-  )
+  );
 }
 
 interface HeaderProps {
-  title: string
-  onMobileMenuClick: () => void
-  userName: string
-  userEmail: string
-  userRole: string
-  userImage?: string
+  title: string;
+  onMobileMenuClick: () => void;
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  userImage?: string;
 }
 
-export function Header({ title, onMobileMenuClick, userName, userEmail, userRole, userImage }: HeaderProps) {
+export function Header({
+  title,
+  onMobileMenuClick,
+  userName,
+  userEmail,
+  userRole,
+  userImage,
+}: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={onMobileMenuClick}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={onMobileMenuClick}
+        >
           <Menu className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-semibold">{title}</h1>
       </div>
       <div className="flex items-center gap-3">
         <ThemeToggle />
-        <UserNav 
-          userName={userName} 
+        <UserNav
+          userName={userName}
           userEmail={userEmail}
           userRole={userRole}
           userImage={userImage}
         />
       </div>
     </header>
-  )
+  );
 }
 
 interface SidebarProps {
-  navItems: NavItem[]
-  currentPath: string
+  navItems: NavItem[];
+  currentPath: string;
 }
 
 export function Sidebar({ navItems, currentPath }: SidebarProps) {
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
-  
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
   const toggleExpand = (section: string) => {
     if (expandedSection === section) {
-      setExpandedSection(null)
+      setExpandedSection(null);
     } else {
-      setExpandedSection(section)
+      setExpandedSection(section);
     }
-  }
-  
+  };
+
   return (
     <aside className="hidden border-r bg-sidebar md:block w-64 shrink-0">
       <div className="flex h-16 items-center border-b border-sidebar-border px-6">
@@ -195,9 +210,9 @@ export function Sidebar({ navItems, currentPath }: SidebarProps) {
       </div>
       <div className="py-4 px-3 space-y-1">
         {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = currentPath === item.href
-          
+          const Icon = item.icon;
+          const isActive = currentPath === item.href;
+
           if (item.label.includes("Section")) {
             return (
               <div key={item.href} className="space-y-1">
@@ -224,9 +239,9 @@ export function Sidebar({ navItems, currentPath }: SidebarProps) {
                   </div>
                 )}
               </div>
-            )
+            );
           }
-          
+
           return (
             <Link
               key={item.href}
@@ -241,16 +256,16 @@ export function Sidebar({ navItems, currentPath }: SidebarProps) {
               <Icon className="h-5 w-5" />
               <span>{item.label}</span>
             </Link>
-          )
+          );
         })}
       </div>
     </aside>
-  )
+  );
 }
 
 interface MobileNavProps {
-  navItems: NavItem[]
-  currentPath: string
+  navItems: NavItem[];
+  currentPath: string;
 }
 
 export function MobileNav({ navItems, currentPath }: MobileNavProps) {
@@ -258,38 +273,36 @@ export function MobileNav({ navItems, currentPath }: MobileNavProps) {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar border-t border-sidebar-border">
       <div className="grid grid-cols-4">
         {navItems.slice(0, 4).map((item) => {
-          const Icon = item.icon
-          const isActive = currentPath === item.href
-          
+          const Icon = item.icon;
+          const isActive = currentPath === item.href;
+
           return (
             <Link
               key={item.href}
               to={item.href}
               className={cn(
                 "flex flex-col items-center justify-center h-16 w-full text-xs font-medium",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground"
+                isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
               <Icon className="h-5 w-5 mb-1" />
               <span>{item.label}</span>
             </Link>
-          )
+          );
         })}
       </div>
     </nav>
-  )
+  );
 }
 
 interface LayoutProps {
-  children: React.ReactNode
-  navItems: NavItem[]
-  title: string
-  userName: string
-  userEmail: string
-  userRole: string
-  userImage?: string
+  children: React.ReactNode;
+  navItems: NavItem[];
+  title: string;
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  userImage?: string;
 }
 
 export function DashboardLayout({
@@ -301,9 +314,9 @@ export function DashboardLayout({
   userRole,
   userImage,
 }: LayoutProps) {
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
-  const location = useLocation()
-  
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const location = useLocation();
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header
@@ -314,23 +327,23 @@ export function DashboardLayout({
         userRole={userRole}
         userImage={userImage}
       />
-      
+
       <div className="flex flex-1">
         <Sidebar navItems={navItems} currentPath={location.pathname} />
-        
+
         <MobileSidebar
           isOpen={isMobileSidebarOpen}
           onClose={() => setIsMobileSidebarOpen(false)}
           navItems={navItems}
           currentPath={location.pathname}
         />
-        
+
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>
-      
+
       <MobileNav navItems={navItems} currentPath={location.pathname} />
     </div>
-  )
+  );
 }

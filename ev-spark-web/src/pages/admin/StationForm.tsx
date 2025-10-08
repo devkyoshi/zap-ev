@@ -373,18 +373,6 @@ export function StationForm({ station, onSubmit, onCancel }: StationFormProps) {
           </div>
         </div>
 
-        {/* ✅ Active Station toggle */}
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={!!formData.isActive}
-            onCheckedChange={(checked: boolean) =>
-              setFormData((prev) => ({ ...prev, isActive: checked }))
-            }
-            id="isActive"
-          />
-          <Label htmlFor="isActive">Active Station</Label>
-        </div>
-
         {/* Buttons */}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>

@@ -292,9 +292,9 @@ export default function BookingsManagementPage() {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={openCreateDialog}>
+        {/* <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" /> Create Booking
-        </Button>
+        </Button> */}
       </div>
 
       <div className="rounded-md border">

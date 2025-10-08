@@ -14,8 +14,7 @@ import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
-import OperatorLayout from "./layouts/OperatorLayout";
-import OwnerLayout from "./layouts/OwnerLayout";
+
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -23,6 +22,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import ErrorPage from "./pages/ErrorPage";
 import RegisterPageUser from "./pages/auth/RegisterPageUser";
+import ProfilePage from "./pages/admin/Profile";
 // Application router configuration
 
 const router = createBrowserRouter([
@@ -83,6 +83,7 @@ const router = createBrowserRouter([
         path: "verify-otp",
         element: <OTPVerificationPage />,
       },
+    
     ],
   },
   // Admin routes
@@ -118,30 +119,14 @@ const router = createBrowserRouter([
         path: "settings",
         element: <div>Settings</div>,
       },
-    ],
-  },
-  // Station Operator routes
-  {
-    path: "/operator",
-    element: <OperatorLayout />,
-    children: [
       {
-        path: "",
-        element: <Navigate to="/operator/stations" replace />,
+        path: "profile",
+        element: <ProfilePage />,
       },
     ],
   },
-  // EV Owner routes
-  {
-    path: "/owner",
-    element: <OwnerLayout />,
-    children: [
-      {
-        path: "",
-        element: <Navigate to="/owner/dashboard" replace />,
-      },
-    ],
-  },
+
+
   {
     path: "/unauthorized",
     element: <ErrorPage />,

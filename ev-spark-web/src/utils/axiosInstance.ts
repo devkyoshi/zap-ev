@@ -25,15 +25,15 @@ axiosInstance.interceptors.response.use(
     const errorMessage =
       error.response?.data?.message || "Something went wrong.";
 
-    alert(errorMessage); 
+    alert(errorMessage);
 
     if (error.response?.status === 401) {
       localStorage.removeItem("authToken");
 
-      window.location.href = "/login";
+      window.location.href = "http://localhost:5173/auth/login";
     }
 
-    return Promise.reject(error); 
+    return Promise.reject(error);
   }
 );
 
