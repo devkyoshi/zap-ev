@@ -37,6 +37,29 @@
             android:textColor="@color/gray_600"
             android:layout_marginBottom="20dp"/>
 
+        <!-- Create New Booking Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCreateBooking"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="16dp"
+            android:text="Create New Booking"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:backgroundTint="@color/primary_light"
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_add"
+            app:iconTint="@color/white" />
+
+        <!-- Divider-->
+        <com.google.android.material.divider.MaterialDivider
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            app:dividerColor="@color/accent"
+            android:layout_marginBottom="10dp"
+            />
+
         <!-- Toggle Buttons (Upcoming / Past) -->
         <LinearLayout
             android:id="@+id/toggleContainer"
@@ -44,6 +67,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
+
             android:layout_marginBottom="16dp">
 
             <com.google.android.material.button.MaterialButton

@@ -3,6 +3,7 @@ package com.ead.zap.ui.auth;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
@@ -12,9 +13,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.widget.NestedScrollView;
 import com.ead.zap.R;
+import com.ead.zap.models.EVOwner;
+import com.ead.zap.models.auth.EVOwnerRegistrationRequest;
+import com.ead.zap.services.AuthService;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class RegisterActivity extends AppCompatActivity {
@@ -25,6 +31,8 @@ public class RegisterActivity extends AppCompatActivity {
     private CardView cardEvOwner, cardStationOperator;
     private NestedScrollView scrollView;
     private String selectedRole = "EV_OWNER"; // Default role
+    
+    private AuthService authService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +43,8 @@ public class RegisterActivity extends AppCompatActivity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE |
                 WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
+        authService = new AuthService(this);
+        
         initViews();
         setupClickListeners();
         setupRoleSelection();
@@ -73,7 +83,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void setupRoleSelection() {
-        // Set initial selection
+        // Set initial selection - only EV_OWNER available on mobile
         selectRole("EV_OWNER");
 
         cardEvOwner.setOnClickListener(v -> {
@@ -81,37 +91,35 @@ public class RegisterActivity extends AppCompatActivity {
             hideKeyboard();
         });
 
+        // Disable station operator registration in mobile app
         cardStationOperator.setOnClickListener(v -> {
-            selectRole("STATION_OPERATOR");
             hideKeyboard();
+            Toast.makeText(this, "Station Operator accounts are created by administrators via web interface. Please contact support.", Toast.LENGTH_LONG).show();
         });
+        
+        // Make station operator card visually disabled
+        cardStationOperator.setEnabled(false);
+        cardStationOperator.setAlpha(0.5f);
     }
 
     private void selectRole(String role) {
+        // Only allow EV_OWNER role on mobile app
+        if (!role.equals("EV_OWNER")) {
+            return;
+        }
+        
         selectedRole = role;
 
-        if (role.equals("EV_OWNER")) {
-            cardEvOwner.setCardBackgroundColor(getColor(R.color.accent));
-            cardEvOwner.setCardElevation(4f);
-
-            tvEvOwner.setTextColor(getColor(R.color.white));
-            tvStationOperator.setTextColor(getColor(R.color.accent));
-
-
-            cardStationOperator.setCardBackgroundColor(getColor(R.color.white));
-            cardStationOperator.setCardElevation(2f);
-        } else {
-
-           tvEvOwner.setTextColor(getColor(R.color.accent));
-           tvStationOperator.setTextColor(getColor(R.color.white));
-
-
-            cardStationOperator.setCardBackgroundColor(getColor(R.color.accent));
-            cardStationOperator.setCardElevation(4f);
-
-            cardEvOwner.setCardBackgroundColor(getColor(R.color.white));
-            cardEvOwner.setCardElevation(2f);
-        }
+        // Always select EV_OWNER (only available role on mobile)
+        cardEvOwner.setCardBackgroundColor(getColor(R.color.accent));
+        cardEvOwner.setCardElevation(4f);
+        tvEvOwner.setTextColor(getColor(R.color.white));
+        
+        // Keep station operator card visually disabled
+        tvStationOperator.setTextColor(getColor(R.color.accent));
+        cardStationOperator.setCardBackgroundColor(getColor(R.color.white));
+        cardStationOperator.setCardElevation(2f);
+        cardStationOperator.setAlpha(0.5f);
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -199,7 +207,80 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Perform registration logic here
-        Toast.makeText(this, "Registering as " + selectedRole, Toast.LENGTH_SHORT).show();
+        // Only EV Owner registration is available in mobile app
+        // Station Operators are created by BackOffice users via web interface
+        if (!selectedRole.equals("EV_OWNER")) {
+            Toast.makeText(this, "Station Operator accounts are created by administrators via web interface. Please contact support.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Disable register button to prevent multiple requests
+        btnRegister.setEnabled(false);
+        btnRegister.setText("Registering...");
+
+        // Create registration request
+        EVOwnerRegistrationRequest request = new EVOwnerRegistrationRequest();
+        request.setNic(nic);
+        request.setFirstName(firstName);
+        request.setLastName(lastName);
+        request.setEmail(email);
+        request.setPhoneNumber(phone);
+        request.setPassword(password);
+        
+        // For now, create empty vehicle list - user can add vehicles later
+        request.setVehicleDetails(new ArrayList<>());
+
+        // Log the registration request for debugging
+        Log.d("RegisterActivity", "Registration request data:");
+        Log.d("RegisterActivity", "NIC: " + request.getNic());
+        Log.d("RegisterActivity", "FirstName: " + request.getFirstName());
+        Log.d("RegisterActivity", "LastName: " + request.getLastName());
+        Log.d("RegisterActivity", "Email: " + request.getEmail());
+        Log.d("RegisterActivity", "PhoneNumber: " + request.getPhoneNumber());
+        Log.d("RegisterActivity", "Password length: " + (request.getPassword() != null ? request.getPassword().length() : 0));
+
+        // Perform registration
+        authService.registerEVOwner(request, new AuthService.RegistrationCallback() {
+            @Override
+            public void onSuccess(EVOwner evOwner) {
+                runOnUiThread(() -> {
+                    Toast.makeText(RegisterActivity.this, "Registration successful! Please login to continue.", Toast.LENGTH_LONG).show();
+                    
+                    // Navigate to login screen
+                    Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                    intent.putExtra("registered_nic", nic); // Pre-fill NIC in login
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(RegisterActivity.this, "Registration failed: " + error, Toast.LENGTH_LONG).show();
+                    resetRegisterButton();
+                });
+            }
+        });
+    }
+
+    /**
+     * Reset register button to original state
+     */
+    private void resetRegisterButton() {
+        btnRegister.setEnabled(true);
+        btnRegister.setText("Register");
+    }
+    
+    /**
+     * Navigate to login activity after successful registration
+     */
+    private void navigateToLoginActivity(String nic) {
+        Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+        intent.putExtra("registered_nic", nic); // Pre-fill NIC in login
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }
