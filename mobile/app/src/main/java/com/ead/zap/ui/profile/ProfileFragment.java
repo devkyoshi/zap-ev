@@ -960,9 +960,9 @@ public class ProfileFragment extends Fragment {
 
     private void showDeleteVehicleDialog(VehicleDetail vehicle, int position) {
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext());
-        builder.setTitle("Delete Vehicle")
-               .setMessage("Are you sure you want to delete " + vehicle.getVehicleDisplayName() + "?")
-               .setPositiveButton("Delete", (dialog, which) -> {
+        builder.setTitle("Remove Vehicle")
+               .setMessage("Are you sure you want to remove " + vehicle.getVehicleDisplayName() + "?")
+               .setPositiveButton("Remove", (dialog, which) -> {
                    vehicleAdapter.removeVehicle(position);
                    // Update visibility based on vehicle list size (don't call updateVehicleList as it causes double refresh)
                    updateVehicleVisibility();

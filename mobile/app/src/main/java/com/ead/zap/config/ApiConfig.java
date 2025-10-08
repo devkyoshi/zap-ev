@@ -6,7 +6,7 @@ package com.ead.zap.config;
  */
 public class ApiConfig {
     // Base URL configurations
-    private static final String LOCAL_BASE_URL = "https://b850b7fd7058.ngrok-free.app/api/";
+    private static final String LOCAL_BASE_URL = "https://2f78c2f90018.ngrok-free.app/api/";
     private static final String DEVELOPMENT_BASE_URL = "https://your-dev-server.com/api/";
     private static final String PRODUCTION_BASE_URL = "https://your-production-server.com/api/";
     
