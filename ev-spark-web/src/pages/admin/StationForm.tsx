@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ interface Station {
   };
   type: number;
   totalSlots: number;
-  availableSlots: number; // ✅ Added this
+  availableSlots: number;
   pricePerHour: number;
   operatingHours: {
     openTime: string;
@@ -267,7 +267,7 @@ export function StationForm({ station, onSubmit, onCancel }: StationFormProps) {
           </div>
         </div>
 
-        {/* ✅ Available Slots */}
+        {/* ✅ Available Slots
         <div className="space-y-2">
           <Label htmlFor="availableSlots">Available Slots</Label>
           <Input
@@ -282,7 +282,7 @@ export function StationForm({ station, onSubmit, onCancel }: StationFormProps) {
             }
             required
           />
-        </div>
+        </div> */}
 
         {/* Price per hour */}
         <div className="space-y-2">

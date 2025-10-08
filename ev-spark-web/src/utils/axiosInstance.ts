@@ -19,4 +19,22 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const errorMessage =
+      error.response?.data?.message || "Something went wrong.";
+
+    alert(errorMessage); 
+
+    if (error.response?.status === 401) {
+      localStorage.removeItem("authToken");
+
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error); 
+  }
+);
+
 export default axiosInstance;
