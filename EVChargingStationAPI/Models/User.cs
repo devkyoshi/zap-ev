@@ -26,8 +26,8 @@ namespace EVChargingStationAPI.Models
         [BsonElement("role")]
         public UserRole Role { get; set; }
 
-        [BsonElement("chargingStationId")]
-        public string? ChargingStationId { get; set; } = null;
+        [BsonElement("chargingStationIds")]
+        public List<string> ChargingStationIds { get; set; } = new List<string>();
 
         [BsonElement("isActive")]
         public bool IsActive { get; set; } = true;

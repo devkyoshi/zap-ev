@@ -64,9 +64,9 @@ namespace EVChargingStationAPI.Services
 
                 await _chargingStations.InsertOneAsync(chargingStation);
 
-                // Update the BackOffice user with the charging station ID
+                // Add the created station to the BackOffice user’s managed list
                 var userCollection = _database.GetCollection<User>("Users");
-                var userUpdate = Builders<User>.Update.Set(u => u.ChargingStationId, chargingStation.Id);
+                var userUpdate = Builders<User>.Update.AddToSet(u => u.ChargingStationIds, chargingStation.Id);
                 await userCollection.UpdateOneAsync(u => u.Id == backOfficeUserId, userUpdate);
 
                 return new ApiResponseDTO<ChargingStation>
@@ -277,10 +277,10 @@ namespace EVChargingStationAPI.Services
                     };
                 }
 
-                // Clear ChargingStationId from all assigned users before deleting
+                // Remove this station ID from all users' station lists before deleting
                 var userCollection = _database.GetCollection<User>("Users");
-                var updateUsers = Builders<User>.Update.Set(u => u.ChargingStationId, null);
-                await userCollection.UpdateManyAsync(u => u.ChargingStationId == id, updateUsers);
+                var updateUsers = Builders<User>.Update.Pull(u => u.ChargingStationIds, id);
+                await userCollection.UpdateManyAsync(u => u.ChargingStationIds.Contains(id), updateUsers);
 
                 var result = await _chargingStations.DeleteOneAsync(s => s.Id == id);
 
@@ -518,18 +518,18 @@ namespace EVChargingStationAPI.Services
                     };
                 }
 
-                // Check if operator is already assigned to another station
-                if (!string.IsNullOrEmpty(operatorUser.ChargingStationId))
+                // Check if operator already has this station assigned
+                if (operatorUser.ChargingStationIds != null && operatorUser.ChargingStationIds.Contains(stationId))
                 {
                     return new ApiResponseDTO<bool>
                     {
                         Success = false,
-                        Message = "This operator is already assigned to another charging station"
+                        Message = "This operator is already assigned to this charging station"
                     };
                 }
 
-                // Assign the operator to the station
-                var update = Builders<User>.Update.Set(u => u.ChargingStationId, stationId);
+                // Add the new station to their list (can manage multiple)
+                var update = Builders<User>.Update.AddToSet(u => u.ChargingStationIds, stationId);
                 var result = await userCollection.UpdateOneAsync(u => u.Id == operatorUserId, update);
 
                 if (result.ModifiedCount > 0)
@@ -581,7 +581,7 @@ namespace EVChargingStationAPI.Services
                 var operatorUser = await userCollection.Find(u =>
                     u.Id == operatorUserId &&
                     u.Role == UserRole.StationOperator &&
-                    u.ChargingStationId == stationId
+                    u.ChargingStationIds.Contains(stationId)
                 ).FirstOrDefaultAsync();
 
                 if (operatorUser == null)
@@ -593,8 +593,8 @@ namespace EVChargingStationAPI.Services
                     };
                 }
 
-                // Remove the station assignment
-                var update = Builders<User>.Update.Set(u => u.ChargingStationId, null);
+                // Remove only the specific station ID from their list
+                var update = Builders<User>.Update.Pull(u => u.ChargingStationIds, stationId);
                 var result = await userCollection.UpdateOneAsync(u => u.Id == operatorUserId, update);
 
                 if (result.ModifiedCount > 0)
@@ -642,7 +642,7 @@ namespace EVChargingStationAPI.Services
 
                 var userCollection = _database.GetCollection<User>("Users");
 
-                var assignedUsers = await userCollection.Find(u => u.ChargingStationId == stationId).ToListAsync();
+                var assignedUsers = await userCollection.Find(u => u.ChargingStationIds.Contains(stationId)).ToListAsync();
 
                 // Remove password hashes from response
                 foreach (var user in assignedUsers)
@@ -673,8 +673,15 @@ namespace EVChargingStationAPI.Services
         private async Task<bool> CanUserAccessStation(string userId, string stationId)
         {
             var userCollection = _database.GetCollection<User>("Users");
-            var user = await userCollection.Find(u => u.Id == userId && u.ChargingStationId == stationId).FirstOrDefaultAsync();
-            return user != null;
+            var user = await userCollection.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (user == null) return false;
+
+            // BackOffice users can access all stations
+            if (user.Role == UserRole.BackOffice)
+                return true;
+
+            // Station Operator: check if stationId is in their list
+            return user.ChargingStationIds != null && user.ChargingStationIds.Contains(stationId);
         }
 
         /// <summary>
