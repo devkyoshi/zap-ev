@@ -398,6 +398,7 @@ public class ProfileFragment extends Fragment {
 
     private void populateFields(ProfileResponse profile) {
         if (profile != null) {
+            // Use null-safe approach to populate fields - empty string if null, but preserve if has value
             etFirstName.setText(profile.getFirstName() != null ? profile.getFirstName() : "");
             etLastName.setText(profile.getLastName() != null ? profile.getLastName() : "");
             etNic.setText(profile.getNic() != null ? profile.getNic() : "");
@@ -407,6 +408,10 @@ public class ProfileFragment extends Fragment {
             
             // Update vehicle list
             updateVehicleList(profile.getVehicleDetails());
+            
+            Log.d(TAG, "Profile fields populated successfully");
+        } else {
+            Log.w(TAG, "Attempted to populate fields with null profile");
         }
     }
 
@@ -445,21 +450,6 @@ public class ProfileFragment extends Fragment {
      * Saves vehicle changes to backend automatically when vehicles are added/edited/deleted
      */
     private void saveVehicleChangesToBackend() {
-        // Validate profile form before saving vehicle changes
-        if (!validateForm()) {
-            Toast.makeText(getContext(), 
-                "Please fix profile information errors before vehicle changes can be saved", 
-                Toast.LENGTH_LONG).show();
-            return;
-        }
-        
-        // Get current form values
-        String firstName = etFirstName.getText().toString().trim();
-        String lastName = etLastName.getText().toString().trim();
-        String email = etEmail.getText().toString().trim();
-        String phone = etPhone.getText().toString().trim();
-        String nic = etNic.getText().toString().trim();
-
         // Get user ID from preferences
         String userId = preferenceManager.getUserId();
         if (userId == null || userId.isEmpty()) {
@@ -468,14 +458,12 @@ public class ProfileFragment extends Fragment {
             return;
         }
 
-        // Create update request with current profile data + updated vehicles
-        ProfileUpdateRequest updateRequest = new ProfileUpdateRequest();
-        updateRequest.setNic(nic);
-        updateRequest.setFirstName(firstName);
-        updateRequest.setLastName(lastName);
-        updateRequest.setEmail(email);
-        updateRequest.setPhoneNumber(phone);
-        updateRequest.setVehicleDetails(new ArrayList<>(vehicleList));
+        // Create safe update request that only updates vehicles and preserves other fields
+        ProfileUpdateRequest updateRequest = createSafeVehicleUpdateRequest();
+        if (updateRequest == null) {
+            Toast.makeText(getContext(), "Unable to create vehicle update request", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         // Show subtle saving indicator
         Toast.makeText(getContext(), "Saving vehicle changes...", Toast.LENGTH_SHORT).show();
@@ -531,14 +519,18 @@ public class ProfileFragment extends Fragment {
     }
 
     private void saveProfile() {
-        if (!validateForm()) {
-            return;
-        }
-
         // Get user ID from preferences
         String userId = preferenceManager.getUserId();
         if (userId == null || userId.isEmpty()) {
             Toast.makeText(getContext(), "Unable to save: User ID not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // For EV Owners, ensure we have profile data loaded before saving
+        if (!isOperator && currentProfile == null) {
+            Toast.makeText(getContext(), "Profile data not loaded. Please wait and try again.", Toast.LENGTH_SHORT).show();
+            // Try to reload profile data
+            loadUserData();
             return;
         }
 
@@ -554,22 +546,21 @@ public class ProfileFragment extends Fragment {
     }
 
     private void saveEVOwnerProfile(String userId) {
-        String firstName = etFirstName.getText().toString().trim();
-        String lastName = etLastName.getText().toString().trim();
-        String email = etEmail.getText().toString().trim();
-        String phone = etPhone.getText().toString().trim();
-        String nic = etNic.getText().toString().trim();
+        // Validate BEFORE creating request to prevent sending invalid data
+        if (!validateForm()) {
+            btnSaveProfile.setEnabled(true);
+            btnSaveProfile.setText("Save Profile");
+            return;
+        }
 
-        // Create update request
-        ProfileUpdateRequest updateRequest = new ProfileUpdateRequest();
-        updateRequest.setNic(nic);
-        updateRequest.setFirstName(firstName);
-        updateRequest.setLastName(lastName);
-        updateRequest.setEmail(email);
-        updateRequest.setPhoneNumber(phone);
-        
-        // Include current vehicle details
-        updateRequest.setVehicleDetails(new ArrayList<>(vehicleList));
+        // Create safe update request that preserves existing data for empty fields
+        ProfileUpdateRequest updateRequest = createSafeUpdateRequest();
+        if (updateRequest == null) {
+            btnSaveProfile.setEnabled(true);
+            btnSaveProfile.setText("Save Profile");
+            Toast.makeText(getContext(), "Unable to create update request", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         // Update profile via API
         profileService.updateUserProfile(userId, updateRequest, new ProfileService.ProfileUpdateCallback() {
@@ -667,43 +658,68 @@ public class ProfileFragment extends Fragment {
         etPhone.setError(null);
         etNic.setError(null);
 
-        // Validate first name
+        // Get form values
         String firstName = etFirstName.getText().toString().trim();
-        ProfileValidator.ValidationResult firstNameResult = ProfileValidator.validateFirstName(firstName);
-        if (firstNameResult.hasError()) {
-            etFirstName.setError(firstNameResult.getErrorMessage());
-            isValid = false;
-        }
-
-        // Validate last name
         String lastName = etLastName.getText().toString().trim();
-        ProfileValidator.ValidationResult lastNameResult = ProfileValidator.validateLastName(lastName);
-        if (lastNameResult.hasError()) {
-            etLastName.setError(lastNameResult.getErrorMessage());
-            isValid = false;
-        }
-
-        // Validate email
         String email = etEmail.getText().toString().trim();
-        ProfileValidator.ValidationResult emailResult = ProfileValidator.validateEmail(email);
-        if (emailResult.hasError()) {
-            etEmail.setError(emailResult.getErrorMessage());
-            isValid = false;
-        }
-
-        // Validate phone number
         String phone = etPhone.getText().toString().trim();
-        ProfileValidator.ValidationResult phoneResult = ProfileValidator.validatePhoneNumber(phone);
-        if (phoneResult.hasError()) {
-            etPhone.setError(phoneResult.getErrorMessage());
-            isValid = false;
+        String nic = etNic.getText().toString().trim();
+
+        // For validation, if field is empty but we have existing data, validation should still pass
+        // as we'll use existing data during update
+        boolean hasExistingProfile = currentProfile != null;
+
+        // Validate first name (only if not empty or no existing data)
+        if (!firstName.isEmpty() || !hasExistingProfile) {
+            ProfileValidator.ValidationResult firstNameResult = ProfileValidator.validateFirstName(firstName);
+            if (firstNameResult.hasError()) {
+                etFirstName.setError(firstNameResult.getErrorMessage());
+                isValid = false;
+            }
         }
 
-        // Validate NIC (though it should be read-only)
-        String nic = etNic.getText().toString().trim();
-        ProfileValidator.ValidationResult nicResult = ProfileValidator.validateNIC(nic);
-        if (nicResult.hasError()) {
-            etNic.setError(nicResult.getErrorMessage());
+        // Validate last name (only if not empty or no existing data)
+        if (!lastName.isEmpty() || !hasExistingProfile) {
+            ProfileValidator.ValidationResult lastNameResult = ProfileValidator.validateLastName(lastName);
+            if (lastNameResult.hasError()) {
+                etLastName.setError(lastNameResult.getErrorMessage());
+                isValid = false;
+            }
+        }
+
+        // Validate email (only if not empty or no existing data)
+        if (!email.isEmpty() || !hasExistingProfile) {
+            ProfileValidator.ValidationResult emailResult = ProfileValidator.validateEmail(email);
+            if (emailResult.hasError()) {
+                etEmail.setError(emailResult.getErrorMessage());
+                isValid = false;
+            }
+        }
+
+        // Validate phone number (only if not empty or no existing data)
+        if (!phone.isEmpty() || !hasExistingProfile) {
+            ProfileValidator.ValidationResult phoneResult = ProfileValidator.validatePhoneNumber(phone);
+            if (phoneResult.hasError()) {
+                etPhone.setError(phoneResult.getErrorMessage());
+                isValid = false;
+            }
+        }
+
+        // Validate NIC (should always be present)
+        if (nic.isEmpty() && hasExistingProfile) {
+            // Use existing NIC if form is empty
+            etNic.setText(currentProfile.getNic());
+            nic = currentProfile.getNic();
+        }
+        
+        if (!nic.isEmpty()) {
+            ProfileValidator.ValidationResult nicResult = ProfileValidator.validateNIC(nic);
+            if (nicResult.hasError()) {
+                etNic.setError(nicResult.getErrorMessage());
+                isValid = false;
+            }
+        } else {
+            etNic.setError("NIC is required");
             isValid = false;
         }
 
@@ -1253,5 +1269,66 @@ public class ProfileFragment extends Fragment {
      */
     private boolean isValidPassword(String password) {
         return password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$");
+    }
+
+    /**
+     * Creates a safe update request that preserves existing data for empty fields
+     * This prevents accidental field clearing during profile updates
+     */
+    private ProfileUpdateRequest createSafeUpdateRequest() {
+        if (currentProfile == null) {
+            Log.e(TAG, "Cannot create update request: current profile is null");
+            return null;
+        }
+
+        ProfileUpdateRequest request = new ProfileUpdateRequest();
+        
+        // Get current form values
+        String firstName = etFirstName.getText().toString().trim();
+        String lastName = etLastName.getText().toString().trim();
+        String email = etEmail.getText().toString().trim();
+        String phone = etPhone.getText().toString().trim();
+        String nic = etNic.getText().toString().trim();
+
+        // Use form values if not empty, otherwise preserve existing values
+        request.setFirstName(!firstName.isEmpty() ? firstName : currentProfile.getFirstName());
+        request.setLastName(!lastName.isEmpty() ? lastName : currentProfile.getLastName());
+        request.setEmail(!email.isEmpty() ? email : currentProfile.getEmail());
+        request.setPhoneNumber(!phone.isEmpty() ? phone : currentProfile.getPhoneNumber());
+        
+        // NIC should not change, use existing value
+        request.setNic(currentProfile.getNic());
+        
+        // Include current vehicle details
+        request.setVehicleDetails(new ArrayList<>(vehicleList));
+
+        Log.d(TAG, "Created safe update request with preserved values");
+        return request;
+    }
+
+    /**
+     * Creates a safe update request specifically for vehicle changes
+     * This ensures other profile fields are not accidentally overwritten during vehicle updates
+     */
+    private ProfileUpdateRequest createSafeVehicleUpdateRequest() {
+        if (currentProfile == null) {
+            Log.e(TAG, "Cannot create vehicle update request: current profile is null");
+            return null;
+        }
+
+        ProfileUpdateRequest request = new ProfileUpdateRequest();
+        
+        // Use existing profile values for all fields except vehicles
+        request.setNic(currentProfile.getNic());
+        request.setFirstName(currentProfile.getFirstName());
+        request.setLastName(currentProfile.getLastName());
+        request.setEmail(currentProfile.getEmail());
+        request.setPhoneNumber(currentProfile.getPhoneNumber());
+        
+        // Only update vehicles
+        request.setVehicleDetails(new ArrayList<>(vehicleList));
+
+        Log.d(TAG, "Created safe vehicle update request preserving profile fields");
+        return request;
     }
 }
