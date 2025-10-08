@@ -243,6 +243,16 @@ namespace EVChargingStationAPI.Services
                 evOwner.UpdatedAt = DateTime.UtcNow;
                 evOwner.CreatedAt = existingEVOwner.CreatedAt;
                 evOwner.NIC = existingEVOwner.NIC; // NIC cannot be changed
+                
+                // Preserve password hash if not provided (profile updates shouldn't change password)
+                if (string.IsNullOrEmpty(evOwner.PasswordHash))
+                {
+                    evOwner.PasswordHash = existingEVOwner.PasswordHash;
+                }
+                
+                // Preserve other sensitive fields that shouldn't change in profile updates
+                evOwner.IsActive = existingEVOwner.IsActive; // Profile updates shouldn't change active status
+                evOwner.LastLogin = existingEVOwner.LastLogin; // Preserve last login info
 
                 var result = await _evOwners.ReplaceOneAsync(e => e.Id == id, evOwner);
 
@@ -269,6 +279,100 @@ namespace EVChargingStationAPI.Services
                 {
                     Success = false,
                     Message = "An error occurred while updating the EV owner"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Updates EV Owner profile information (profile-specific fields only)
+        /// </summary>
+        public async Task<ApiResponseDTO<EVOwner>> UpdateEVOwnerProfileAsync(string id, ProfileUpdateDTO profileUpdateDto)
+        {
+            try
+            {
+                var existingEVOwner = await _evOwners.Find(e => e.Id == id).FirstOrDefaultAsync();
+                if (existingEVOwner == null)
+                {
+                    return new ApiResponseDTO<EVOwner>
+                    {
+                        Success = false,
+                        Message = "EV Owner not found"
+                    };
+                }
+
+                // Use MongoDB Update operators to only update non-null/non-empty fields
+                // This ensures password and other sensitive fields are preserved, and prevents accidental field clearing
+                var updateBuilder = Builders<EVOwner>.Update;
+                var updates = new List<UpdateDefinition<EVOwner>>();
+
+                // Only update fields that have valid values
+                if (!string.IsNullOrWhiteSpace(profileUpdateDto.FirstName))
+                {
+                    updates.Add(updateBuilder.Set(e => e.FirstName, profileUpdateDto.FirstName.Trim()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(profileUpdateDto.LastName))
+                {
+                    updates.Add(updateBuilder.Set(e => e.LastName, profileUpdateDto.LastName.Trim()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(profileUpdateDto.Email))
+                {
+                    updates.Add(updateBuilder.Set(e => e.Email, profileUpdateDto.Email.Trim().ToLower()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(profileUpdateDto.PhoneNumber))
+                {
+                    updates.Add(updateBuilder.Set(e => e.PhoneNumber, profileUpdateDto.PhoneNumber.Trim()));
+                }
+
+                // Vehicle details can be updated even if null/empty (to allow clearing vehicles)
+                updates.Add(updateBuilder.Set(e => e.VehicleDetails, profileUpdateDto.VehicleDetails ?? new List<VehicleDetail>()));
+
+                // Always update the timestamp
+                updates.Add(updateBuilder.Set(e => e.UpdatedAt, DateTime.UtcNow));
+
+                // If no meaningful updates were made, return error
+                if (updates.Count <= 1) // Only timestamp update
+                {
+                    return new ApiResponseDTO<EVOwner>
+                    {
+                        Success = false,
+                        Message = "No valid fields provided for update"
+                    };
+                }
+
+                var combinedUpdate = updateBuilder.Combine(updates);
+                var result = await _evOwners.UpdateOneAsync(e => e.Id == id, combinedUpdate);
+
+                if (result.ModifiedCount > 0)
+                {
+                    // Retrieve the updated EVOwner to return
+                    var updatedEVOwner = await _evOwners.Find(e => e.Id == id).FirstOrDefaultAsync();
+                    
+                    // Remove password hash from response
+                    updatedEVOwner.PasswordHash = string.Empty;
+                    
+                    return new ApiResponseDTO<EVOwner>
+                    {
+                        Success = true,
+                        Message = "EV Owner profile updated successfully",
+                        Data = updatedEVOwner
+                    };
+                }
+
+                return new ApiResponseDTO<EVOwner>
+                {
+                    Success = false,
+                    Message = "Failed to update EV Owner profile"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<EVOwner>
+                {
+                    Success = false,
+                    Message = "An error occurred while updating the EV owner profile"
                 };
             }
         }

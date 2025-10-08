@@ -12,11 +12,12 @@ using EVChargingStationAPI.Models.DTOs;
 using EVChargingStationAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EVChargingStationAPI.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -267,6 +268,57 @@ namespace EVChargingStationAPI.Controllers
                     Success = true,
                     Message = "Logged out successfully"
                 });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Changes password for authenticated users
+        /// </summary>
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDTO changePasswordDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "Invalid request data",
+                        Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
+                    });
+                }
+
+                // Get user information from JWT claims
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userType = User.FindFirst("UserType")?.Value;
+
+                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(userType))
+                {
+                    return Unauthorized(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "Invalid authentication token"
+                    });
+                }
+
+                var result = await _authService.ChangePasswordAsync(userId, userType, changePasswordDto);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
             }
             catch (Exception ex)
             {

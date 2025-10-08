@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:backgroundTint="@color/white"
+    android:background="@color/white"
+    android:padding="24dp">
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvDialogTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Vehicle"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- Vehicle Make -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilVehicleMake"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Vehicle Make"
+        app:hintTextColor="@color/accent"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxStrokeColor="@color/accent"
+        app:endIconMode="clear_text"
+        app:endIconTint="@color/accent"
+        app:startIconDrawable="@drawable/ic_car"
+        app:startIconTint="@color/accent"
+        android:textColorHint="@color/accent"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etVehicleMake"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapWords"
+            android:textColor="@color/black"
+            android:textColorHint="@color/accent"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Vehicle Model -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilVehicleModel"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Vehicle Model"
+        app:hintTextColor="@color/accent"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxStrokeColor="@color/accent"
+        app:endIconMode="clear_text"
+        app:endIconTint="@color/accent"
+        app:startIconDrawable="@drawable/ic_car"
+        app:startIconTint="@color/accent"
+        android:textColorHint="@color/accent"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etVehicleModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapWords"
+            android:textColor="@color/black"
+            android:textColorHint="@color/accent"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- License Plate -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilLicensePlate"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="License Plate"
+        app:hintTextColor="@color/accent"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxStrokeColor="@color/accent"
+        app:endIconMode="clear_text"
+        app:endIconTint="@color/accent"
+        app:startIconDrawable="@drawable/ic_id_card"
+        app:startIconTint="@color/accent"
+        android:textColorHint="@color/accent"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etLicensePlate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapCharacters"
+            android:textColor="@color/black"
+            android:textColorHint="@color/accent"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Vehicle Year -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilVehicleYear"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Year"
+        app:hintTextColor="@color/accent"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxStrokeColor="@color/accent"
+        app:endIconMode="clear_text"
+        app:endIconTint="@color/accent"
+        app:startIconDrawable="@drawable/ic_calendar"
+        app:startIconTint="@color/accent"
+        android:textColorHint="@color/accent"
+        android:layout_marginBottom="24dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etVehicleYear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:textColor="@color/black"
+            android:textColorHint="@color/accent"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancel"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="@color/accent"
+            android:layout_marginEnd="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/primary_light"
+            app:cornerRadius="24dp"/>
+    </LinearLayout>
+
+</LinearLayout>

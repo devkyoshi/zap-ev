@@ -84,6 +84,7 @@ namespace EVChargingStationAPI.Services
                         AccessToken = accessToken,
                         RefreshToken = refreshToken,
                         UserType = "User",
+                        Role = user.Role.ToString(),
                         UserId = user.Id,
                         AccessTokenExpiresAt = accessTokenExpiry,
                         RefreshTokenExpiresAt = refreshTokenExpiry,
@@ -148,6 +149,7 @@ namespace EVChargingStationAPI.Services
                         AccessToken = accessToken,
                         RefreshToken = refreshToken,
                         UserType = "EVOwner",
+                        Role = "EVOwner",
                         UserId = evOwner.Id,
                         AccessTokenExpiresAt = accessTokenExpiry,
                         RefreshTokenExpiresAt = refreshTokenExpiry
@@ -239,6 +241,7 @@ namespace EVChargingStationAPI.Services
                         AccessToken = newAccessToken,
                         RefreshToken = newRefreshToken,
                         UserType = session.UserType,
+                        Role = role,
                         UserId = session.UserId,
                         AccessTokenExpiresAt = accessTokenExpiry,
                         RefreshTokenExpiresAt = refreshTokenExpiry
@@ -342,6 +345,116 @@ namespace EVChargingStationAPI.Services
         public string HashPassword(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+
+        /// <summary>
+        /// Changes password for authenticated users (both regular users and EV owners)
+        /// </summary>
+        public async Task<ApiResponseDTO<object>> ChangePasswordAsync(string userId, string userType, ChangePasswordDTO changePasswordDto)
+        {
+            try
+            {
+                // Validate new password
+                var (isValid, message) = PasswordValidator.Validate(changePasswordDto.NewPassword);
+                if (!isValid)
+                {
+                    return new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = message
+                    };
+                }
+
+                if (userType == "User")
+                {
+                    // Handle regular user password change
+                    var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                    if (user == null)
+                    {
+                        return new ApiResponseDTO<object>
+                        {
+                            Success = false,
+                            Message = "User not found"
+                        };
+                    }
+
+                    // Verify current password
+                    if (!ValidatePassword(changePasswordDto.CurrentPassword, user.PasswordHash))
+                    {
+                        return new ApiResponseDTO<object>
+                        {
+                            Success = false,
+                            Message = "Current password is incorrect"
+                        };
+                    }
+
+                    // Update password
+                    var update = Builders<User>.Update
+                        .Set(u => u.PasswordHash, HashPassword(changePasswordDto.NewPassword))
+                        .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+                    await _users.UpdateOneAsync(u => u.Id == userId, update);
+                }
+                else if (userType == "EVOwner")
+                {
+                    // Handle EV owner password change
+                    var evOwner = await _evOwners.Find(e => e.Id == userId).FirstOrDefaultAsync();
+                    if (evOwner == null)
+                    {
+                        return new ApiResponseDTO<object>
+                        {
+                            Success = false,
+                            Message = "EV Owner not found"
+                        };
+                    }
+
+                    // Verify current password
+                    if (!ValidatePassword(changePasswordDto.CurrentPassword, evOwner.PasswordHash))
+                    {
+                        return new ApiResponseDTO<object>
+                        {
+                            Success = false,
+                            Message = "Current password is incorrect"
+                        };
+                    }
+
+                    // Update password
+                    var update = Builders<EVOwner>.Update
+                        .Set(e => e.PasswordHash, HashPassword(changePasswordDto.NewPassword))
+                        .Set(e => e.UpdatedAt, DateTime.UtcNow);
+
+                    await _evOwners.UpdateOneAsync(e => e.Id == userId, update);
+                }
+                else
+                {
+                    return new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "Invalid user type"
+                    };
+                }
+
+                // Invalidate all active sessions for security (user will need to log in again)
+                await _sessions.UpdateManyAsync(
+                    s => s.UserId == userId && s.IsActive,
+                    Builders<Session>.Update.Set(s => s.IsActive, false)
+                );
+
+                return new ApiResponseDTO<object>
+                {
+                    Success = true,
+                    Message = "Password changed successfully. Please log in again.",
+                    Data = null
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while changing password"
+                };
+            }
         }
     }
 }

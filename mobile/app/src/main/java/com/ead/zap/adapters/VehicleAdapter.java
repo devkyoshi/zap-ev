@@ -3,24 +3,33 @@ package com.ead.zap.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RadioButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.ead.zap.R;
-import com.ead.zap.models.Vehicle;
+import com.ead.zap.models.VehicleDetail;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.List;
 
+/**
+ * Adapter for displaying vehicle list in profile
+ */
 public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleViewHolder> {
 
-    private List<Vehicle> vehicleList;
-    private int selectedPosition = -1;
+    private List<VehicleDetail> vehicles;
+    private OnVehicleActionListener listener;
 
-    public VehicleAdapter(List<Vehicle> vehicleList) {
-        this.vehicleList = vehicleList;
+    public interface OnVehicleActionListener {
+        void onEditVehicle(VehicleDetail vehicle, int position);
+        void onDeleteVehicle(VehicleDetail vehicle, int position);
+    }
+
+    public VehicleAdapter(List<VehicleDetail> vehicles, OnVehicleActionListener listener) {
+        this.vehicles = vehicles;
+        this.listener = listener;
     }
 
     @NonNull
@@ -33,42 +42,92 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
 
     @Override
     public void onBindViewHolder(@NonNull VehicleViewHolder holder, int position) {
-        Vehicle vehicle = vehicleList.get(position);
-
-        holder.tvVehicleName.setText(vehicle.getName());
-        holder.tvPlateNumber.setText(vehicle.getPlateNumber());
-        holder.tvVehicleType.setText(vehicle.getType());
-
-        // Radio button selection
-        holder.radioButton.setChecked(position == selectedPosition);
-        holder.itemView.setOnClickListener(v -> {
-            selectedPosition = holder.getAdapterPosition();
-            notifyDataSetChanged();
-        });
+        VehicleDetail vehicle = vehicles.get(position);
+        holder.bind(vehicle, position);
     }
 
     @Override
     public int getItemCount() {
-        return vehicleList.size();
+        return vehicles != null ? vehicles.size() : 0;
     }
 
-    public Vehicle getSelectedVehicle() {
-        if (selectedPosition >= 0 && selectedPosition < vehicleList.size()) {
-            return vehicleList.get(selectedPosition);
+    public void updateVehicles(List<VehicleDetail> newVehicles) {
+        this.vehicles = newVehicles;
+        notifyDataSetChanged();
+    }
+
+    public void addVehicle(VehicleDetail vehicle) {
+        if (vehicles != null) {
+            vehicles.add(vehicle);
+            notifyItemInserted(vehicles.size() - 1);
         }
-        return null;
     }
 
-    static class VehicleViewHolder extends RecyclerView.ViewHolder {
-        TextView tvVehicleName, tvPlateNumber, tvVehicleType;
-        RadioButton radioButton;
+    public void updateVehicle(int position, VehicleDetail vehicle) {
+        if (vehicles != null && position >= 0 && position < vehicles.size()) {
+            vehicles.set(position, vehicle);
+            notifyItemChanged(position);
+        }
+    }
 
-        VehicleViewHolder(@NonNull View itemView) {
+    public void removeVehicle(int position) {
+        if (vehicles != null && position >= 0 && position < vehicles.size()) {
+            vehicles.remove(position);
+            notifyItemRemoved(position);
+            // Notify item range changed to update positions of remaining items
+            notifyItemRangeChanged(position, vehicles.size() - position);
+        }
+    }
+
+    class VehicleViewHolder extends RecyclerView.ViewHolder {
+        private TextView tvVehicleName;
+        private TextView tvLicensePlate;
+        private TextView tvVehicleDetails;
+        private MaterialButton btnEdit;
+        private MaterialButton btnDelete;
+
+        public VehicleViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvVehicleName = itemView.findViewById(R.id.tv_vehicle_name);
-            tvPlateNumber = itemView.findViewById(R.id.tv_plate_number);
-            tvVehicleType = itemView.findViewById(R.id.tv_vehicle_type);
-            radioButton = itemView.findViewById(R.id.rb_select_vehicle);
+            tvVehicleName = itemView.findViewById(R.id.tvVehicleName);
+            tvLicensePlate = itemView.findViewById(R.id.tvLicensePlate);
+            tvVehicleDetails = itemView.findViewById(R.id.tvVehicleDetails);
+            btnEdit = itemView.findViewById(R.id.btnEditVehicle);
+            btnDelete = itemView.findViewById(R.id.btnDeleteVehicle);
+        }
+
+        public void bind(VehicleDetail vehicle, int position) {
+            if (vehicle != null) {
+                // Set vehicle name (year + make + model)
+                tvVehicleName.setText(vehicle.getVehicleDisplayName());
+                
+                // Set license plate
+                tvLicensePlate.setText(vehicle.getLicensePlate() != null ? 
+                    vehicle.getLicensePlate() : "No license plate");
+                
+                // Set vehicle details
+                String details = "Make: " + (vehicle.getMake() != null ? vehicle.getMake() : "Unknown") +
+                               " • Model: " + (vehicle.getModel() != null ? vehicle.getModel() : "Unknown");
+                tvVehicleDetails.setText(details);
+                
+                // Set click listeners using current adapter position
+                btnEdit.setOnClickListener(v -> {
+                    if (listener != null) {
+                        int currentPosition = getAdapterPosition();
+                        if (currentPosition != RecyclerView.NO_POSITION) {
+                            listener.onEditVehicle(vehicles.get(currentPosition), currentPosition);
+                        }
+                    }
+                });
+                
+                btnDelete.setOnClickListener(v -> {
+                    if (listener != null) {
+                        int currentPosition = getAdapterPosition();
+                        if (currentPosition != RecyclerView.NO_POSITION) {
+                            listener.onDeleteVehicle(vehicles.get(currentPosition), currentPosition);
+                        }
+                    }
+                });
+            }
         }
     }
 }

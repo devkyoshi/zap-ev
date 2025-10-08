@@ -18,7 +18,7 @@ using System.Security.Claims;
 namespace EVChargingStationAPI.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/evowners")]
     public class EVOwnersController : ControllerBase
     {
         private readonly IEVOwnerService _evOwnerService;
@@ -39,13 +39,26 @@ namespace EVChargingStationAPI.Controllers
         {
             try
             {
+                // Log registration attempt
+                Console.WriteLine($"EV Owner registration attempt:");
+                Console.WriteLine($"  NIC: {createEVOwnerDto?.NIC ?? "null"}");
+                Console.WriteLine($"  FirstName: {createEVOwnerDto?.FirstName ?? "null"}");
+                Console.WriteLine($"  LastName: {createEVOwnerDto?.LastName ?? "null"}");
+                Console.WriteLine($"  Email: {createEVOwnerDto?.Email ?? "null"}");
+                Console.WriteLine($"  PhoneNumber: {createEVOwnerDto?.PhoneNumber ?? "null"}");
+                Console.WriteLine($"  Password: {(string.IsNullOrEmpty(createEVOwnerDto?.Password) ? "empty" : "***")}");
+                Console.WriteLine($"  VehicleDetails count: {createEVOwnerDto?.VehicleDetails?.Count ?? 0}");
+                
                 if (!ModelState.IsValid)
                 {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList();
+                    Console.WriteLine($"Validation errors: {string.Join(", ", errors)}");
+                    
                     return BadRequest(new ApiResponseDTO<object>
                     {
                         Success = false,
                         Message = "Invalid request data",
-                        Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
+                        Errors = errors
                     });
                 }
 
@@ -184,6 +197,53 @@ namespace EVChargingStationAPI.Controllers
                 }
 
                 var result = await _evOwnerService.UpdateEVOwnerAsync(id, evOwner);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Updates an EV owner profile (mobile app profile updates)
+        /// </summary>
+        [HttpPut("{id}/profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateEVOwnerProfile(string id, [FromBody] ProfileUpdateDTO profileUpdateDto)
+        {
+            try
+            {
+                // Check if user is updating their own profile or is BackOffice
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (currentUserId != id && userRole != "BackOffice")
+                {
+                    return Forbid();
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "Invalid request data",
+                        Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
+                    });
+                }
+
+                var result = await _evOwnerService.UpdateEVOwnerProfileAsync(id, profileUpdateDto);
 
                 if (result.Success)
                 {

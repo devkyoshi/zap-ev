@@ -12,6 +12,8 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.ead.zap.R;
 import com.ead.zap.models.Booking;
+import com.ead.zap.models.BookingStatus;
+import com.ead.zap.services.BookingService;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -24,6 +26,7 @@ public class CancelReservationActivity extends AppCompatActivity {
                     tvDuration, tvTotalCost, tvBookingId, tvStatus, tvCancellationPolicy;
     private Button btnBackToBookings, btnCancelReservation;
     private Booking booking;
+    private BookingService bookingService;
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
     private SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
@@ -33,6 +36,8 @@ public class CancelReservationActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cancel_reservation);
 
+        bookingService = new BookingService(this);
+        
         setupToolbar();
         initViews();
         loadBookingData();
@@ -79,7 +84,7 @@ public class CancelReservationActivity extends AppCompatActivity {
         minCancellationTime.add(Calendar.HOUR, 12);
 
         boolean canCancel = bookingTime.after(minCancellationTime) && 
-                           ("PENDING".equals(booking.getStatus()) || "APPROVED".equals(booking.getStatus()));
+                           booking.getStatus().canBeCancelled();
 
         // Populate booking information
         tvStationName.setText(booking.getStationName());
@@ -89,20 +94,20 @@ public class CancelReservationActivity extends AppCompatActivity {
         tvDuration.setText(String.format(Locale.getDefault(), "%d minutes", booking.getDuration()));
         tvTotalCost.setText(String.format(Locale.getDefault(), "LKR %.2f", booking.getTotalCost()));
         tvBookingId.setText(booking.getBookingId() != null ? booking.getBookingId() : "N/A");
-        tvStatus.setText(booking.getStatus());
+        tvStatus.setText(booking.getStatusString());
 
         // Set status color
         switch (booking.getStatus()) {
-            case "APPROVED":
+            case APPROVED:
                 tvStatus.setTextColor(getColor(R.color.primary_light));
                 break;
-            case "PENDING":
+            case PENDING:
                 tvStatus.setTextColor(getColor(R.color.amber_600));
                 break;
-            case "CANCELLED":
+            case CANCELLED:
                 tvStatus.setTextColor(getColor(R.color.red_600));
                 break;
-            case "COMPLETED":
+            case COMPLETED:
                 tvStatus.setTextColor(getColor(R.color.gray_600));
                 break;
             default:
@@ -115,9 +120,9 @@ public class CancelReservationActivity extends AppCompatActivity {
             tvCancellationPolicy.setText("You can cancel this reservation free of charge at least 12 hours before the scheduled time.");
             btnCancelReservation.setEnabled(true);
         } else {
-            if ("CANCELLED".equals(booking.getStatus())) {
+            if (BookingStatus.CANCELLED.equals(booking.getStatus())) {
                 tvCancellationPolicy.setText("This reservation has already been cancelled.");
-            } else if ("COMPLETED".equals(booking.getStatus())) {
+            } else if (BookingStatus.COMPLETED.equals(booking.getStatus())) {
                 tvCancellationPolicy.setText("This reservation has been completed and cannot be cancelled.");
             } else {
                 tvCancellationPolicy.setText("Cannot cancel reservation less than 12 hours before the scheduled time.");
@@ -155,22 +160,43 @@ public class CancelReservationActivity extends AppCompatActivity {
     }
 
     private void cancelReservation() {
-        // Here you would typically make an API call to cancel the booking
-        // For now, we'll simulate a successful cancellation
-        
-        booking.setStatus("CANCELLED");
-        booking.setUpdatedAt(new Date());
+        // Disable button to prevent multiple clicks
+        btnCancelReservation.setEnabled(false);
+        btnCancelReservation.setText("Cancelling...");
 
-        // Show success message
-        Toast.makeText(this, "Reservation cancelled successfully", Toast.LENGTH_SHORT).show();
+        bookingService.cancelBooking(
+            booking.getBookingId(),
+            new BookingService.BooleanCallback() {
+                @Override
+                public void onSuccess(boolean result) {
+                    runOnUiThread(() -> {
+                        // Update local booking object
+                        booking.setStatus(BookingStatus.CANCELLED);
+                        booking.setUpdatedAt(new Date());
 
-        // Return the cancelled booking to the calling activity
-        Intent resultIntent = new Intent();
-        resultIntent.putExtra("cancelled_booking", booking);
-        setResult(RESULT_OK, resultIntent);
-        
-        // Show success dialog with options
-        showCancellationSuccessDialog();
+                        // Return the cancelled booking to the calling activity
+                        Intent resultIntent = new Intent();
+                        resultIntent.putExtra("cancelled_booking", booking);
+                        setResult(RESULT_OK, resultIntent);
+                        
+                        // Show success dialog
+                        showCancellationSuccessDialog();
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(CancelReservationActivity.this, 
+                            "Failed to cancel reservation: " + error, Toast.LENGTH_LONG).show();
+                        
+                        // Re-enable button
+                        btnCancelReservation.setEnabled(true);
+                        btnCancelReservation.setText("Cancel Reservation");
+                    });
+                }
+            }
+        );
     }
 
     private void showCancellationSuccessDialog() {

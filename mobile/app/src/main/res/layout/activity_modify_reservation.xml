@@ -11,6 +11,7 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+
         app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
@@ -28,7 +29,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginBottom="80dp"
+
         android:fillViewport="true">
 
         <LinearLayout
@@ -46,7 +47,7 @@
                 android:layout_height="wrap_content"
                 android:text="Modify Your Reservation"
                 android:textColor="@color/primary_dark"
-                android:textSize="24sp"
+                android:textSize="18sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
@@ -64,9 +65,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:strokeColor="@color/secondary"
-                app:strokeWidth="1dp">
+                android:backgroundTint="@color/white"
+                app:strokeColor="@color/primary_light"
+                app:strokeWidth="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -111,8 +112,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:strokeColor="@color/secondary"
+                android:backgroundTint="@color/white"
+                app:strokeColor="@color/primary_light"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -214,9 +215,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
+                android:backgroundTint="@color/white"
                 app:strokeColor="@color/primary_light"
-                app:strokeWidth="2dp">
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -240,6 +241,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:hint="Select Date"
+                        android:textColorHint="@color/accent"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
@@ -266,6 +268,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:hint="Select Time"
+                        android:textColorHint="@color/accent"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
@@ -291,6 +294,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Duration (minutes)"
+                        android:textColorHint="@color/accent"
                         app:boxCornerRadiusTopStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
@@ -299,6 +303,7 @@
                         app:hintTextColor="@color/accent"
                         app:startIconDrawable="@drawable/ic_clock"
                         app:startIconTint="@color/accent"
+                        app:helperTextTextColor="@color/accent"
                         app:helperText="Enter duration in minutes (Max: 480 min)">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -319,8 +324,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:strokeColor="@color/secondary"
+
+                android:backgroundTint="@color/white"
+                app:strokeColor="@color/primary_light"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -367,7 +373,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/secondary"
+                        android:background="@color/primary_light"
                         android:layout_marginVertical="12dp" />
 
                     <!-- Estimated Cost Row -->
@@ -411,7 +417,8 @@
         android:orientation="horizontal"
         android:background="@color/white"
         android:elevation="8dp"
-        android:paddingStart="20dp"
+
+        android:paddingStart="10dp"
         android:paddingEnd="20dp"
         android:paddingTop="16dp"
         android:paddingBottom="16dp">
