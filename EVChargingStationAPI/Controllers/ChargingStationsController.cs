@@ -102,6 +102,37 @@ namespace EVChargingStationAPI.Controllers
         }
 
         /// <summary>
+        /// Gets charging stations by operator ID
+        /// </summary>
+        [HttpGet("operator")]
+        public async Task<IActionResult> GetChargingStationsByOperatorId()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _chargingStationService.GetChargingStationsByOperatorIdAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
+        /// <summary>
         /// Gets a charging station by ID
         /// </summary>
         [HttpGet("{id}")]

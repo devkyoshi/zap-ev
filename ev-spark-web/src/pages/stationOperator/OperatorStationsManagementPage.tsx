@@ -61,7 +61,7 @@ export default function StationsDisplayPage() {
         setLoading(true);
         setError(null);
 
-        const response = await axiosInstance.get("/ChargingStations");
+        const response = await axiosInstance.get("/ChargingStations/operator");
 
         const result: ApiResponse<Station> = response.data;
 
