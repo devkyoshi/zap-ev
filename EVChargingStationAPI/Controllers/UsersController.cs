@@ -243,7 +243,7 @@ namespace EVChargingStationAPI.Controllers
         /// Gets all unassigned station operators (BackOffice only)
         /// </summary>
         [HttpGet("unassigned-operators")]
-        [Authorize(Roles = "BackOffice")]
+        [Authorize(Roles = "BackOffice,StationOperator")]
         public async Task<IActionResult> GetUnassignedStationOperators()
         {
             try

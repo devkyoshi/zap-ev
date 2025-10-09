@@ -1,3 +1,5 @@
+import type { User } from "./user";
+
 export interface Station {
   id: string;
   name: string;
@@ -21,4 +23,8 @@ export interface Station {
   amenities: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StationWithOperators extends Station {
+  assignedOperators?: User[];
 }

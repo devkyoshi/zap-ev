@@ -9,3 +9,16 @@ export interface CreateBookingData {
   durationMinutes: number;
   notes: string;
 }
+
+
+export interface Booking {
+  id: string;
+  evOwnerNIC: string;
+  chargingStationName: string;
+  reservationDateTime: string;
+  durationMinutes: number;
+  status: number;
+  totalAmount: number;
+  qrCode: string;
+  createdAt: string;
+}

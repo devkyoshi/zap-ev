@@ -1,17 +1,6 @@
+import type { Booking } from "@/types/booking";
 import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
-import { Calendar, Clock, Car, MapPin, User, CreditCard } from "lucide-react";
-
-interface Booking {
-  id: string;
-  evOwnerNIC: string;
-  chargingStationName: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  status: number;
-  totalAmount: number;
-  qrCode: string;
-  createdAt: string;
-}
+import { Calendar, Clock, MapPin, User, CreditCard } from "lucide-react";
 
 interface BookingDetailViewProps {
   booking: Booking;

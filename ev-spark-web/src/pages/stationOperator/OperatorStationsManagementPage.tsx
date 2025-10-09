@@ -3,7 +3,6 @@ import {
   Search,
   MapPin,
   Clock,
-  DollarSign,
   Battery,
   Wifi,
   Coffee,
@@ -44,44 +43,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { ApiResponse } from "@/types/response";
+import type { Station, StationWithOperators } from "@/types/station";
+import type { User } from "@/types/user";
 import { StationForm } from "./StationForm";
 import { StationDeleteConfirmation } from "./StationDeleteConfirmation";
-interface Location {
-  latitude: number;
-  longitude: number;
-  address: string;
-  city: string;
-  province: string;
-}
 
-interface OperatingHours {
-  openTime: string;
-  closeTime: string;
-  operatingDays: number[];
-}
-
-interface Station {
-  id: string;
-  name: string;
-  location: Location;
-  type: number;
-  totalSlots: number;
-  availableSlots: number;
-  pricePerHour: number;
-  operatingHours: OperatingHours;
-  isActive: boolean;
-  amenities: string[];
-  createdAt: string;
-  updatedAt: string;
-  assignedOperators?: User[];
-}
-
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data: Station[];
-  errors: string[];
-}
 type ActionDialogState = {
   isOpen: boolean;
   action:
@@ -94,21 +61,10 @@ type ActionDialogState = {
     | null;
   station: Station | null;
 };
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: number;
-  isActive: boolean;
-}
 
-interface StationWithOperators extends Station {
-  assignedOperators?: User[];
-}
 export default function StationsDisplayPage() {
   const [stations, setStations] = useState<Station[]>([]);
-  const [filteredStations, setFilteredStations] = useState<Station[]>([]);
+  const [filteredStations, setFilteredStations] = useState<StationWithOperators[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +87,7 @@ export default function StationsDisplayPage() {
 
         const response = await axiosInstance.get("/ChargingStations");
 
-        const result: ApiResponse = response.data;
+        const result: ApiResponse<Station> = response.data;
 
         if (result.success && Array.isArray(result.data)) {
           const stationsWithOperators = await Promise.all(
@@ -213,7 +169,7 @@ export default function StationsDisplayPage() {
         // Refresh stations or update local state
         const fetchStations = async () => {
           const response = await axiosInstance.get("/ChargingStations");
-          const result: ApiResponse = response.data;
+          const result: ApiResponse<Station> = response.data;
           if (result.success && Array.isArray(result.data)) {
             setStations(result.data);
             setFilteredStations(result.data);
@@ -245,7 +201,7 @@ export default function StationsDisplayPage() {
         // Refresh stations or update local state
         const fetchStations = async () => {
           const response = await axiosInstance.get("/ChargingStations");
-          const result: ApiResponse = response.data;
+          const result: ApiResponse<Station> = response.data;
           if (result.success && Array.isArray(result.data)) {
             setStations(result.data);
             setFilteredStations(result.data);
@@ -264,7 +220,7 @@ export default function StationsDisplayPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axiosInstance.get("/Users");
+      const response = await axiosInstance.get("/users/unassigned-operators");
       if (response.data.success) {
         setUsers(response.data.data);
       } else {

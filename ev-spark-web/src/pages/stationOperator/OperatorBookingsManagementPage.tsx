@@ -6,7 +6,6 @@ import {
   XCircle,
   Calendar,
   Clock,
-  Plus,
   Check,
 } from "lucide-react";
 
@@ -42,34 +41,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { BookingDetailView } from "./BookingDetailView";
 import axiosInstance from "@/utils/axiosInstance";
 import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
-import { CreateBookingForm } from "./BookinCreate";
-
-interface Booking {
-  id: string;
-  evOwnerNIC: string;
-  chargingStationName: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  status: number;
-  totalAmount: number;
-  qrCode: string;
-  createdAt: string;
-}
+import { BookingDetailView } from "./OperatorBookingDetailView";
+import type { Booking } from "@/types/booking";
 
 type ActionDialogState = {
   isOpen: boolean;
   action: "view" | "cancel" | "create" | "approve" | null;
   booking: Booking | null;
 };
-interface CreateBookingData {
-  chargingStationId: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  notes: string;
-}
+
 export default function BookingsManagementPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,30 +63,6 @@ export default function BookingsManagementPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const handleCreateBooking = async (data: CreateBookingData) => {
-    try {
-      setError(null);
-
-      const response = await axiosInstance.post("/bookings", {
-        ...data,
-        durationMinutes: Number(data.durationMinutes),
-      });
-
-      if (response.data.success) {
-        await fetchBookings(); // Refresh the list
-        closeDialog();
-      } else {
-        throw new Error(response.data.message || "Failed to create booking");
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create booking";
-      setError(message);
-      console.error("Error creating booking:", err);
-      throw err; // Re-throw to handle in form
-    }
-  };
 
   const handleApproveBooking = async (bookingId: string) => {
     try {
@@ -133,15 +91,6 @@ export default function BookingsManagementPage() {
       isOpen: true,
       action: "approve",
       booking,
-    });
-  };
-
-  // Add open create dialog function
-  const openCreateDialog = () => {
-    setActionDialog({
-      isOpen: true,
-      action: "create",
-      booking: null,
     });
   };
 
@@ -348,7 +297,7 @@ export default function BookingsManagementPage() {
                       {
                         BookingStatusLabel[
                           Object.keys(BookingStatus)[
-                            Object.values(BookingStatus).indexOf(b.status)
+                            Object.values(BookingStatus).indexOf(b.status as BookingStatus)
                           ] as keyof typeof BookingStatus
                         ]
                       }
@@ -461,10 +410,6 @@ export default function BookingsManagementPage() {
                   {error}
                 </div>
               )}
-              <CreateBookingForm
-                onSubmit={handleCreateBooking}
-                onCancel={closeDialog}
-              />
             </>
           )}
         </DialogContent>
