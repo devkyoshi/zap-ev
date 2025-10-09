@@ -402,7 +402,7 @@ namespace EVChargingStationAPI.Controllers
         /// Gets all users assigned to a charging station (BackOffice only)
         /// </summary>
         [HttpGet("{stationId}/assigned-users")]
-        [Authorize(Roles = "BackOffice")]
+        [Authorize(Roles = "StationOperator,BackOffice")]
         public async Task<IActionResult> GetStationAssignedUsers(string stationId)
         {
             try

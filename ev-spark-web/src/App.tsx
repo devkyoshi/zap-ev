@@ -6,14 +6,21 @@ import {
 import { Toaster } from "sonner";
 
 import { ThemeProvider } from "./components/theme-provider";
+// Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
 import UsersPage from "./pages/admin/UsersPage";
 import OwnersPage from "./pages/admin/OwnersPage";
 import StationsManagementPage from "./pages/admin/StationsManagementPage";
 import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
+
+// Operator Pages
+import OperatorStationsManagementPage from "./pages/stationOperator/OperatorStationsManagementPage";
+import OperatorBookingsManagementPage from "./pages/stationOperator/OperatorBookingsManagementPage";
+
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
+import OperatorLayout from "./layouts/OperatorLayout";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -122,6 +129,25 @@ const router = createBrowserRouter([
       {
         path: "profile",
         element: <ProfilePage />,
+      },
+    ],
+  },
+  // Station Operator Routes
+  {
+    path: "/operator",
+    element: <OperatorLayout />,
+    children: [
+      {
+        path: "",
+        element: <Navigate to="/operator/stations" replace />,
+      },
+      {
+        path: "stations",
+        element: <OperatorStationsManagementPage />,
+      },
+      {
+        path: "bookings",
+        element: <OperatorBookingsManagementPage />,
       },
     ],
   },
