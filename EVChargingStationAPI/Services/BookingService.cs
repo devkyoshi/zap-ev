@@ -272,6 +272,74 @@ namespace EVChargingStationAPI.Services
                 };
             }
         }
+
+        /// <summary>
+        /// Retrieves bookings for a specific station operator
+        /// </summary>
+        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetBookingsByStationOperatorAsync(string operatorId)
+        {
+            try
+            {
+                var user = await _users.Find(u => u.Id == operatorId).FirstOrDefaultAsync();
+                if (user == null)
+                {
+                    return new ApiResponseDTO<List<BookingResponseDTO>>
+                    {
+                        Success = false,
+                        Message = "Operator not found"
+                    };
+                }
+
+                if (user.ChargingStationIds == null || !user.ChargingStationIds.Any())
+                {
+                    return new ApiResponseDTO<List<BookingResponseDTO>>
+                    {
+                        Success = true,
+                        Message = "Not assigned to any charging stations",
+                        Data = new List<BookingResponseDTO>()
+                    };
+                }
+
+                var bookings = await _bookings
+                    .Find(b => user.ChargingStationIds.Contains(b.ChargingStationId))
+                    .ToListAsync();
+
+                var bookingResponses = new List<BookingResponseDTO>();
+                foreach (var booking in bookings)
+                {
+                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+
+                    bookingResponses.Add(new BookingResponseDTO
+                    {
+                        Id = booking.Id,
+                        EVOwnerNIC = booking.EVOwnerNIC,
+                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ReservationDateTime = booking.ReservationDateTime,
+                        DurationMinutes = booking.DurationMinutes,
+                        Status = booking.Status,
+                        TotalAmount = booking.TotalAmount,
+                        QRCode = booking.QRCode,
+                        CreatedAt = booking.CreatedAt
+                    });
+                }
+
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = true,
+                    Message = "Bookings retrieved successfully",
+                    Data = bookingResponses
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving bookings"
+                };
+            }
+        }
+
         /// <summary>
         /// Retrieves bookings for a specific EV owner
         /// </summary>
