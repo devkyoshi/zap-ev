@@ -13,4 +13,12 @@
     <color name="gray_400">#BDBDBD</color>
     <color name="background">#FAFAFA</color>
     <color name="blue_600">#03A9F4</color>
+    
+    <!-- Splash Screen Colors - Matching App Theme -->
+    <color name="splash_primary">#2C5A1E</color>
+    <color name="splash_secondary">#4A7A2E</color>
+    <color name="splash_accent">#8FA31E</color>
+    <color name="splash_text_secondary">#C8E6C9</color>
+    <color name="electric_gold">#FFD700</color>
+    <color name="electric_yellow">#FFEB3B</color>
 </resources>
