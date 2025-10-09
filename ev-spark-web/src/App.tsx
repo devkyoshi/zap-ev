@@ -16,6 +16,7 @@ import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
 // Operator Pages
 import OperatorStationsManagementPage from "./pages/stationOperator/OperatorStationsManagementPage";
 import OperatorBookingsManagementPage from "./pages/stationOperator/OperatorBookingsManagementPage";
+import OperatorProfilePage from "./pages/stationOperator/OperatorProfilePage";
 
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
@@ -148,6 +149,10 @@ const router = createBrowserRouter([
       {
         path: "bookings",
         element: <OperatorBookingsManagementPage />,
+      },
+      {
+        path: "profile",
+        element: <OperatorProfilePage />,
       },
     ],
   },

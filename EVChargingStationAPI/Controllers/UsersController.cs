@@ -72,7 +72,7 @@ namespace EVChargingStationAPI.Controllers
         /// Gets all users (BackOffice only)
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "BackOffice")]
+        [Authorize(Roles = "BackOffice,StationOperator")]
         public async Task<IActionResult> GetAllUsers()
         {
             try
