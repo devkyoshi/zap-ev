@@ -148,9 +148,8 @@ const RegisterPage = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="1">User</SelectItem>
-                      <SelectItem value="2">Admin</SelectItem>
-                      <SelectItem value="3">Manager</SelectItem>
+                      <SelectItem value="1">Backoffice</SelectItem>
+                      <SelectItem value="2">Station Operator</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

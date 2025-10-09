@@ -7,6 +7,7 @@ import {
   Calendar,
   Clock,
   Plus,
+  Check,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ interface Booking {
 
 type ActionDialogState = {
   isOpen: boolean;
-  action: "view" | "cancel" | "create" | null;
+  action: "view" | "cancel" | "create" | "approve" | null;
   booking: Booking | null;
 };
 interface CreateBookingData {
@@ -105,6 +106,36 @@ export default function BookingsManagementPage() {
     }
   };
 
+  const handleApproveBooking = async (bookingId: string) => {
+    try {
+      setError(null);
+
+      const response = await axiosInstance.patch(
+        `/bookings/${bookingId}/approve`
+      );
+
+      if (response.data.success) {
+        await fetchBookings();
+        closeDialog();
+      } else {
+        throw new Error("Failed to approve booking");
+      }
+    } catch (err) {
+      const message = "Failed to approve booking";
+      setError(message);
+      console.error("Error approving booking:", err);
+    }
+  };
+
+  // Add open approve dialog function
+  const openApproveDialog = (booking: Booking) => {
+    setActionDialog({
+      isOpen: true,
+      action: "approve",
+      booking,
+    });
+  };
+
   // Add open create dialog function
   const openCreateDialog = () => {
     setActionDialog({
@@ -113,10 +144,12 @@ export default function BookingsManagementPage() {
       booking: null,
     });
   };
+
   const closeDialog = () => {
     setActionDialog({ isOpen: false, action: null, booking: null });
     setError(null);
   };
+
   const fetchBookings = async () => {
     try {
       setLoading(true);
@@ -259,9 +292,9 @@ export default function BookingsManagementPage() {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={openCreateDialog}>
+        {/* <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" /> Create Booking
-        </Button>
+        </Button> */}
       </div>
 
       <div className="rounded-md border">
@@ -339,6 +372,11 @@ export default function BookingsManagementPage() {
                         </DropdownMenuItem>
                         {b.status === BookingStatus.PENDING && (
                           <>
+                            <DropdownMenuItem
+                              onClick={() => openApproveDialog(b)}
+                            >
+                              <Check className="mr-2 h-4 w-4" /> Approve Booking
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => openCancelDialog(b)}
@@ -359,7 +397,7 @@ export default function BookingsManagementPage() {
         </Table>
       </div>
 
-      {/* Dialog for view/cancel actions */}
+      {/* Dialog for view/cancel/approve actions */}
       <Dialog
         open={actionDialog.isOpen}
         onOpenChange={(isOpen) => !isOpen && closeDialog()}
@@ -381,6 +419,34 @@ export default function BookingsManagementPage() {
               </div>
             </>
           )}
+
+          {actionDialog.action === "approve" && actionDialog.booking && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Approve Booking</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to approve booking{" "}
+                  {actionDialog.booking.id}?
+                </DialogDescription>
+              </DialogHeader>
+              {error && (
+                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={closeDialog}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleApproveBooking(actionDialog.booking!.id)}
+                >
+                  <Check className="mr-2 h-4 w-4" /> Approve Booking
+                </Button>
+              </div>
+            </>
+          )}
+
           {/* Add Create Booking Dialog */}
           {actionDialog.action === "create" && (
             <>

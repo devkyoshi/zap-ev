@@ -170,6 +170,7 @@ export function OwnerForm({ owner, onSubmit, onCancel }: OwnerFormProps) {
         {/* Basic Info */}
         <FormField
           control={form.control}
+          disabled={isEditMode}
           name="nic"
           render={({ field }) => (
             <FormItem>

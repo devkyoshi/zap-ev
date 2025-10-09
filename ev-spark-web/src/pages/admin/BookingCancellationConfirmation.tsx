@@ -1,10 +1,10 @@
-import { Button } from "@/components/ui/button"
-import { AlertTriangle } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 
 interface BookingCancellationConfirmationProps {
-  bookingId: string
-  onConfirm: () => void
-  onCancel: () => void
+  bookingId: string;
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
 export function BookingCancellationConfirmation({
@@ -19,21 +19,19 @@ export function BookingCancellationConfirmation({
           <AlertTriangle className="h-5 w-5 text-destructive" />
         </div>
         <p>
-          Are you sure you want to cancel booking <strong>#{bookingId}</strong>? This will refund the payment.
+          Are you sure you want to cancel booking <strong>#{bookingId}</strong>?
+          This will refund the payment.
         </p>
       </div>
-      
+
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
           Keep Booking
         </Button>
-        <Button
-          variant="destructive"
-          onClick={onConfirm}
-        >
+        <Button variant="destructive" onClick={onConfirm}>
           Cancel Booking
         </Button>
       </div>
     </div>
-  )
+  );
 }

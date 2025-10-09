@@ -154,15 +154,15 @@ namespace EVChargingStationAPI.Services
         {
             try
             {
-                // Check if user has permission to update the station
-                if (!await CanUserAccessStation(userId, id))
-                {
-                    return new ApiResponseDTO<ChargingStation>
-                    {
-                        Success = false,
-                        Message = "You don't have permission to update this charging station"
-                    };
-                }
+                //// Check if user has permission to update the station
+                //if (!await CanUserAccessStation(userId, id))
+                //{
+                //    return new ApiResponseDTO<ChargingStation>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to update this charging station"
+                //    };
+                //}
 
                 var existingStation = await _chargingStations.Find(s => s.Id == id).FirstOrDefaultAsync();
                 if (existingStation == null)

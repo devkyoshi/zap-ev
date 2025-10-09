@@ -105,5 +105,13 @@
     <string name="session_details">Session Details</string>
     <string name="booking_details">Booking Details</string>
     <string name="complete_session">Complete Session</string>
+    
+    <!-- Splash Screen -->
+    <string name="app_tagline">Power Your Journey</string>
+    <string name="loading_text">Loading…</string>
+    <string name="initializing_app">Initializing app…</string>
+    <string name="connecting_services">Connecting to services…</string>
+    <string name="preparing_interface">Preparing interface…</string>
+    <string name="almost_ready">Almost ready…</string>
 
 </resources>
