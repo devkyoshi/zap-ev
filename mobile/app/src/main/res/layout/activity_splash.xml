@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/splash_gradient_background"
+    android:gravity="center"
+    android:orientation="vertical"
+    tools:context=".ui.splash.SplashActivity">
+
+    <!-- Main Logo Container -->
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="80dp">
+
+        <!-- Electric Bolt Background Circle -->
+        <View
+            android:id="@+id/logoBackground"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/logo_background_circle"
+            android:elevation="2dp" />
+
+        <!-- ZapEV Logo -->
+        <ImageView
+            android:id="@+id/ivLogo"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_centerInParent="true"
+            android:contentDescription="@string/app_name"
+            android:elevation="4dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/app_logo" />
+
+        <!-- Animated Electric Ring -->
+        <ImageView
+            android:id="@+id/ivElectricRing"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_centerInParent="true"
+            android:contentDescription="Electric animation"
+            android:elevation="6dp"
+            android:src="@drawable/electric_ring" />
+
+    </RelativeLayout>
+
+    <!-- App Title -->
+    <TextView
+        android:id="@+id/tvAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/app_name"
+        android:textColor="@color/white"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-condensed" />
+
+    <!-- Tagline -->
+    <TextView
+        android:id="@+id/tvTagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="60dp"
+        android:text="@string/app_tagline"
+        android:textColor="@color/splash_text_secondary"
+        android:textSize="16sp"
+        android:textStyle="normal"
+        android:alpha="0.9" />
+
+    <!-- Loading Section -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <!-- Custom Progress Bar -->
+        <RelativeLayout
+            android:layout_width="200dp"
+            android:layout_height="4dp"
+            android:layout_marginBottom="16dp">
+
+            <!-- Progress Bar Background -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/progress_bar_background" />
+
+            <!-- Animated Progress -->
+            <View
+                android:id="@+id/progressBar"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/progress_bar_foreground" />
+
+        </RelativeLayout>
+
+        <!-- Loading Text -->
+        <TextView
+            android:id="@+id/tvLoadingText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/loading_text"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:alpha="0.8" />
+
+    </LinearLayout>
+
+    <!-- Floating Electric Particles (Optional) -->
+    <ImageView
+        android:id="@+id/ivParticle1"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginTop="-300dp"
+        android:layout_marginEnd="80dp"
+        android:alpha="0.7"
+        android:contentDescription="Electric particle"
+        android:src="@drawable/electric_particle" />
+
+    <ImageView
+        android:id="@+id/ivParticle2"
+        android:layout_width="6dp"
+        android:layout_height="6dp"
+        android:layout_marginTop="-200dp"
+        android:layout_marginStart="90dp"
+        android:alpha="0.5"
+        android:contentDescription="Electric particle"
+        android:src="@drawable/electric_particle" />
+
+    <ImageView
+        android:id="@+id/ivParticle3"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_marginTop="-250dp"
+        android:layout_marginEnd="30dp"
+        android:alpha="0.6"
+        android:contentDescription="Electric particle"
+        android:src="@drawable/electric_particle" />
+
+</LinearLayout>
