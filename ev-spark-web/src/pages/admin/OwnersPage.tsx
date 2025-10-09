@@ -1,5 +1,17 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, MoreHorizontal, Trash2, Edit } from "lucide-react";
+import {
+  Search,
+  Plus,
+  MoreHorizontal,
+  Trash2,
+  Edit,
+  Car,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  IdCard,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import axiosInstance from "@/utils/axiosInstance";
 import { OwnerForm } from "./OwnerForm";
 
@@ -62,7 +76,7 @@ interface ApiResponse<T> {
 
 type ActionDialogState = {
   isOpen: boolean;
-  action: "create" | "edit" | "delete" | null;
+  action: "create" | "edit" | "delete" | "view" | null;
   owner: EVOwner | null;
 };
 
@@ -81,12 +95,12 @@ export default function EVOwnersPage() {
   const fetchOwners = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get<ApiResponse<EVOwner[]>>(
+      const response = await axiosInstance.get<ApiResponse<EVOwner>>(
         "/EVOwners"
       );
 
       if (response.data.success) {
-        setOwners(response.data.data.flat());
+        setOwners(response.data.data);
       } else {
         throw new Error(response.data.message || "Failed to fetch owners");
       }
@@ -115,7 +129,13 @@ export default function EVOwnersPage() {
       fullName.includes(query) ||
       owner.email.toLowerCase().includes(query) ||
       owner.phoneNumber.toLowerCase().includes(query) ||
-      owner.nic.toLowerCase().includes(query)
+      owner.nic.toLowerCase().includes(query) ||
+      owner.vehicleDetails.some(
+        (vehicle) =>
+          vehicle.licensePlate.toLowerCase().includes(query) ||
+          vehicle.make.toLowerCase().includes(query) ||
+          vehicle.model.toLowerCase().includes(query)
+      )
     );
   });
 
@@ -173,8 +193,6 @@ export default function EVOwnersPage() {
     }
   };
 
-  // In your main component, update the handlers to use EVOwner:
-
   const handleCreateOwner = async (data: Partial<EVOwner>) => {
     try {
       const response = await axiosInstance.post<ApiResponse<EVOwner>>(
@@ -209,9 +227,6 @@ export default function EVOwnersPage() {
     }
 
     try {
-      console.log("Updating owner with data:", data);
-      console.log("Owner ID:", actionDialog.owner.id);
-
       const updateData = {
         nic: data.nic,
         firstName: data.firstName,
@@ -219,30 +234,22 @@ export default function EVOwnersPage() {
         email: data.email,
         phoneNumber: data.phoneNumber,
         isActive: actionDialog.owner.isActive,
-        // Only include password if provided
         ...(data.password && { password: data.password }),
         vehicleDetails: data.vehicleDetails,
       };
-
-      console.log("Sending update payload:", updateData);
 
       const response = await axiosInstance.put<ApiResponse<EVOwner>>(
         `/EVOwners/${actionDialog.owner.id}`,
         updateData
       );
 
-      console.log("Update response:", response);
-
       if (response.data.success) {
-        console.log("Update successful, refreshing data...");
         await fetchOwners();
         closeDialog();
       } else {
-        console.error("Update failed:", response.data.message);
         throw new Error(response.data.message || "Failed to update owner");
       }
     } catch (err) {
-      console.error("Error in handleUpdateOwner:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Failed to update owner";
       setError(errorMessage);
@@ -273,6 +280,14 @@ export default function EVOwnersPage() {
     });
   };
 
+  const openViewDialog = (owner: EVOwner) => {
+    setActionDialog({
+      isOpen: true,
+      action: "view",
+      owner,
+    });
+  };
+
   const closeDialog = () => {
     setActionDialog({
       isOpen: false,
@@ -287,12 +302,191 @@ export default function EVOwnersPage() {
       year: "numeric",
       month: "short",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const formatLastLogin = (lastLogin: string | null) => {
     if (!lastLogin) return "Never";
     return formatDate(lastLogin);
+  };
+
+  // Detail View Component
+  const OwnerDetailView = ({ owner }: { owner: EVOwner }) => {
+    return (
+      <div className="space-y-6">
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="vehicles">
+              Vehicles ({owner.vehicleDetails.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      First Name
+                    </label>
+                    <p className="text-base">{owner.firstName}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Last Name
+                    </label>
+                    <p className="text-base">{owner.lastName}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <IdCard className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      NIC
+                    </label>
+                    <p className="text-base">{owner.nic}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Email
+                    </label>
+                    <p className="text-base">{owner.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Phone Number
+                    </label>
+                    <p className="text-base">{owner.phoneNumber}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Account Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Status
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`h-2 w-2 rounded-full ${
+                          owner.isActive ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      />
+                      <span className="text-base">
+                        {owner.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Last Login
+                    </label>
+                    <p className="text-base">
+                      {formatLastLogin(owner.lastLogin)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Created At
+                    </label>
+                    <p className="text-base">{formatDate(owner.createdAt)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Updated At
+                    </label>
+                    <p className="text-base">{formatDate(owner.updatedAt)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vehicles">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  Vehicle Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {owner.vehicleDetails.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    No vehicles registered
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {owner.vehicleDetails.map((vehicle, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Make
+                            </label>
+                            <p className="text-base">{vehicle.make}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Model
+                            </label>
+                            <p className="text-base">{vehicle.model}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              License Plate
+                            </label>
+                            <p className="text-base font-mono">
+                              {vehicle.licensePlate}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Year
+                            </label>
+                            <p className="text-base">{vehicle.year}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
   };
 
   if (loading) {
@@ -361,7 +555,10 @@ export default function EVOwnersPage() {
               </TableRow>
             ) : (
               filteredOwners.map((owner) => (
-                <TableRow key={owner.id}>
+                <TableRow
+                  key={owner.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
                   <TableCell className="font-medium">
                     {owner.firstName} {owner.lastName}
                   </TableCell>
@@ -396,12 +593,16 @@ export default function EVOwnersPage() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openViewDialog(owner)}>
+                          <User className="mr-2 h-4 w-4" /> View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEditDialog(owner)}>
                           <Edit className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
@@ -426,7 +627,7 @@ export default function EVOwnersPage() {
         open={actionDialog.isOpen}
         onOpenChange={(isOpen) => !isOpen && closeDialog()}
       >
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           {actionDialog.action === "create" && (
             <>
               <DialogHeader>
@@ -472,6 +673,29 @@ export default function EVOwnersPage() {
                 </Button>
                 <Button variant="destructive" onClick={handleDeleteOwner}>
                   Delete
+                </Button>
+              </div>
+            </>
+          )}
+
+          {actionDialog.action === "view" && actionDialog.owner && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  Owner Details: {actionDialog.owner.firstName}{" "}
+                  {actionDialog.owner.lastName}
+                </DialogTitle>
+                <DialogDescription>
+                  Complete information about the EV owner and their vehicles
+                </DialogDescription>
+              </DialogHeader>
+              <OwnerDetailView owner={actionDialog.owner} />
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={closeDialog}>
+                  Close
+                </Button>
+                <Button onClick={() => openEditDialog(actionDialog.owner!)}>
+                  <Edit className="mr-2 h-4 w-4" /> Edit Owner
                 </Button>
               </div>
             </>

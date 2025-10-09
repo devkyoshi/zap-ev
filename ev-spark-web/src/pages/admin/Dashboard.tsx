@@ -136,44 +136,24 @@ const AdminDashboard = () => {
       value: totalEVOwners.toString(),
       icon: Users,
       description: "Active registered users",
-      trend: {
-        value: 12, // You might want to calculate this from historical data
-        isPositive: true,
-        label: "from last month",
-      },
     },
     {
       title: "Total Active Stations",
       value: totalActiveStations.toString(),
       icon: Zap,
       description: "Across all regions",
-      trend: {
-        value: 7.5, // You might want to calculate this from historical data
-        isPositive: true,
-        label: "from last month",
-      },
     },
     {
       title: "Pending Bookings",
       value: pendingBookings.toString(),
       icon: Calendar,
       description: "Awaiting confirmation",
-      trend: {
-        value: 4.3, // You might want to calculate this from historical data
-        isPositive: false,
-        label: "from last week",
-      },
     },
     {
       title: "Registered Vehicles",
       value: totalRegisteredVehicles.toString(),
       icon: Car,
       description: "All electric vehicles",
-      trend: {
-        value: 8.1, // You might want to calculate this from historical data
-        isPositive: true,
-        label: "from last month",
-      },
     },
   ];
 
@@ -210,34 +190,18 @@ const AdminDashboard = () => {
             value={stat.value}
             description={stat.description}
             icon={stat.icon}
-            trend={stat.trend}
           />
         ))}
       </StatsGrid>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-2 h-[300px] md:col-span-1">
-          <CardHeader>
-            <CardTitle>Regional Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex h-[220px] items-center justify-center rounded-md border border-dashed p-4">
-              <p className="text-sm text-muted-foreground">
-                {chargingStations.length > 0
-                  ? `Stations in ${chargingStations[0].location.city}`
-                  : "No station data available"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="h-[300px]">
           <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
+            <CardTitle>Recent Stations</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex h-[220px] flex-col space-y-2 overflow-y-auto">
-              {bookings.slice(0, 5).map((booking) => (
+              {bookings.slice(0, 3).map((booking) => (
                 <div key={booking.id} className="p-2 border rounded">
                   <p className="text-sm font-medium">
                     {booking.chargingStationName}
@@ -261,9 +225,46 @@ const AdminDashboard = () => {
             <CardTitle>Booking Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex h-[220px] items-center justify-center rounded-md border border-dashed p-4">
-              <p className="text-sm text-muted-foreground">
-                Total Bookings: {bookings.length}
+            <div className="flex h-[220px] flex-col justify-center space-y-3 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+              <p>Total Bookings: {bookings.length}</p>
+
+              <p>
+                Upcoming Bookings:{" "}
+                {
+                  bookings.filter(
+                    (b) => new Date(b.reservationDateTime) > new Date()
+                  ).length
+                }
+              </p>
+
+              <p>
+                Last Booking:{" "}
+                {bookings.length > 0
+                  ? new Date(
+                      [...bookings].sort(
+                        (a, b) =>
+                          new Date(b.reservationDateTime).getTime() -
+                          new Date(a.reservationDateTime).getTime()
+                      )[0].reservationDateTime
+                    ).toLocaleDateString()
+                  : "N/A"}
+              </p>
+
+              <p>
+                Most Frequent Station:{" "}
+                {(() => {
+                  const freqMap: Record<string, number> = {};
+                  bookings.forEach((b) => {
+                    freqMap[b.chargingStationName] =
+                      (freqMap[b.chargingStationName] || 0) + 1;
+                  });
+
+                  const mostUsed = Object.entries(freqMap).sort(
+                    (a, b) => b[1] - a[1]
+                  )[0]?.[0];
+
+                  return mostUsed || "N/A";
+                })()}
               </p>
             </div>
           </CardContent>

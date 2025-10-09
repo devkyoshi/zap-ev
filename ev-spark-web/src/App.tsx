@@ -14,8 +14,7 @@ import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
-import OperatorLayout from "./layouts/OperatorLayout";
-import OwnerLayout from "./layouts/OwnerLayout";
+
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -23,16 +22,23 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import ErrorPage from "./pages/ErrorPage";
 import RegisterPageUser from "./pages/auth/RegisterPageUser";
+import ProfilePage from "./pages/admin/Profile";
 // Application router configuration
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <div className="flex min-h-screen items-center justify-center">
+      <div
+        className="flex min-h-screen items-center justify-center bg-cover bg-center relative"
+        style={{
+          backgroundImage:
+            "url('https://th.bing.com/th/id/R.f2eab68118dcc4d75c43bc81fd696daa?rik=M131u%2bnSz1unmg&riu=http%3a%2f%2fwww.pixelstalk.net%2fwp-content%2fuploads%2f2016%2f05%2fCool-Anime-Wallpapers.jpg&ehk=mi%2bXc3XwL4c%2f3DaRG923L3bWU3WGGWzunoLqmX3p9mQ%3d&risl=&pid=ImgRaw&r=0')",
+        }}
+      >
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">EV Spark Charging System</h1>
-          <p className="mb-6">
+          <p className="mb-6 ">
             Welcome to the EV Charging Station Booking System.
           </p>
           <div className="flex justify-center space-x-4">
@@ -42,17 +48,12 @@ const router = createBrowserRouter([
             >
               Sign In
             </a>
-            <a
-              href="/auth/register"
-              className="inline-flex items-center justify-center rounded-md border bg-background px-4 py-2 text-sm font-medium shadow-xs"
-            >
-              Register
-            </a>
+
             <a
               href="/auth/registerUser"
               className="inline-flex items-center justify-center rounded-md border bg-background px-4 py-2 text-sm font-medium shadow-xs"
             >
-              Register as USer
+              Register
             </a>
           </div>
         </div>
@@ -118,30 +119,13 @@ const router = createBrowserRouter([
         path: "settings",
         element: <div>Settings</div>,
       },
-    ],
-  },
-  // Station Operator routes
-  {
-    path: "/operator",
-    element: <OperatorLayout />,
-    children: [
       {
-        path: "",
-        element: <Navigate to="/operator/stations" replace />,
+        path: "profile",
+        element: <ProfilePage />,
       },
     ],
   },
-  // EV Owner routes
-  {
-    path: "/owner",
-    element: <OwnerLayout />,
-    children: [
-      {
-        path: "",
-        element: <Navigate to="/owner/dashboard" replace />,
-      },
-    ],
-  },
+
   {
     path: "/unauthorized",
     element: <ErrorPage />,
