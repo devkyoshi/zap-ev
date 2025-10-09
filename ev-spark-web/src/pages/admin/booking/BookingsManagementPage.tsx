@@ -318,7 +318,7 @@ export default function BookingsManagementPage() {
                       }
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">${b.totalAmount}</TableCell>
+                  <TableCell className="text-right">${b.totalAmount.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

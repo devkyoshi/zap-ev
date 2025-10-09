@@ -131,7 +131,7 @@ export default function StationCard(stationProps: StationCardProps) {
                         <span className="text-sm">Price per hour</span>
                     </div>
                     <span className="font-semibold">
-                        LKR {station.pricePerHour}
+                        LKR {station.pricePerHour.toFixed(2)}
                     </span>
                 </div>
 

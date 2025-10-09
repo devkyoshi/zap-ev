@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from "@/components/ui/dropdown-menu";
+import {
   Search,
   Plus,
 } from "lucide-react";
@@ -17,7 +23,7 @@ import {
 import { StationForm } from "./StationForm";
 import { StationDeleteConfirmation } from "./StationDeleteConfirmation";
 import type { Station, StationWithOperators } from "@/types/station";
-import type { User } from "@/types/user";
+import type { UserProfile } from "@/types/user";
 import type { ApiResponse } from "@/types/response";
 import StationCard from "./StationCard";
 
@@ -49,9 +55,9 @@ export default function StationsDisplayPage() {
     station: null,
   });
   const [slotUpdateValue, setSlotUpdateValue] = useState<string>("");
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedOperatorId, setSelectedOperatorId] = useState<string>("");
-  const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
+  const [assignedUsers, setAssignedUsers] = useState<UserProfile[]>([]);
   const [loadingAssignedUsers, setLoadingAssignedUsers] = useState(false);
 
   useEffect(() => {
@@ -631,21 +637,49 @@ export default function StationsDisplayPage() {
                   >
                     Select Operator
                   </label>
-                  <select
-                    id="operator"
-                    value={selectedOperatorId}
-                    onChange={(e) => setSelectedOperatorId(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Select an operator</option>
-                    {users
-                      .filter((user) => user.role === 2 && user.isActive)
-                      .map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.firstName} {user.lastName} ({user.email})
-                        </option>
-                      ))}
-                  </select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full flex justify-between items-center"
+                        id="operator"
+                        aria-haspopup="listbox"
+                      >
+                        {selectedOperatorId
+                          ? (() => {
+                              const selected = users.find(
+                                (user) => user.id === selectedOperatorId
+                              );
+                              console.log(selected);
+                              return selected
+                                ? `${selected.username} (${selected.email})`
+                                : "Select an operator";
+                            })()
+                          : "Select an operator"}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-full">
+                      {users.filter((user) => user.role === 2 && user.isActive).length === 0 ? (
+                        <DropdownMenuItem disabled>No operators available</DropdownMenuItem>
+                      ) : (
+                        users
+                          .filter((user) => user.role === 2 && user.isActive)
+                          .map((user) => (
+                            <DropdownMenuItem
+                              key={user.id}
+                              onSelect={() => setSelectedOperatorId(user.id)}
+                              className={
+                                selectedOperatorId === user.id
+                                  ? "bg-accent text-accent-foreground"
+                                  : ""
+                              }
+                            >
+                              {user.username} ({user.email})
+                            </DropdownMenuItem>
+                          ))
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={closeDialog}>
@@ -696,21 +730,48 @@ export default function StationsDisplayPage() {
                       No operators assigned to this station
                     </div>
                   ) : (
-                    <select
-                      id="operator"
-                      value={selectedOperatorId}
-                      onChange={(e) => setSelectedOperatorId(e.target.value)}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="">Select an operator</option>
-                      {assignedUsers
-                        .filter((user) => user.role === 2 && user.isActive)
-                        .map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.firstName} {user.lastName} ({user.email})
-                          </option>
-                        ))}
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full flex justify-between items-center"
+                          id="operator"
+                          aria-haspopup="listbox"
+                        >
+                          {selectedOperatorId
+                            ? (() => {
+                                const selected = assignedUsers.find(
+                                  (user) => user.id === selectedOperatorId
+                                );
+                                return selected
+                                  ? `${selected.username} (${selected.email})`
+                                  : "Select an operator";
+                              })()
+                            : "Select an operator"}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-full">
+                        {assignedUsers.filter((user) => user.role === 2 && user.isActive).length === 0 ? (
+                          <DropdownMenuItem disabled>No operators available</DropdownMenuItem>
+                        ) : (
+                          assignedUsers
+                            .filter((user) => user.role === 2 && user.isActive)
+                            .map((user) => (
+                              <DropdownMenuItem
+                                key={user.id}
+                                onSelect={() => setSelectedOperatorId(user.id)}
+                                className={
+                                  selectedOperatorId === user.id
+                                    ? "bg-accent text-accent-foreground"
+                                    : ""
+                                }
+                              >
+                                {user.username} ({user.email})
+                              </DropdownMenuItem>
+                            ))
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </div>
                 <div className="flex justify-end space-x-2">

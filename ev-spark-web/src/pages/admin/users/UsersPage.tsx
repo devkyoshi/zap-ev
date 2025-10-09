@@ -397,6 +397,7 @@ export default function UsersPage() {
                       onCheckedChange={(checked) =>
                         handleToggleStatus(user.id, checked)
                       }
+                      className="data-[state=checked]:bg-green-500"
                       aria-label="Toggle user status"
                       disabled={loading}
                     />

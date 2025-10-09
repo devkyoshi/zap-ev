@@ -107,7 +107,7 @@ export function MobileSidebar({
         }`}
       >
         <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
-          <div className="font-bold text-lg">EV Spark</div>
+          <div className="font-bold text-lg">Zap EV</div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-5 w-5" />
           </Button>
@@ -203,8 +203,8 @@ export function Sidebar({ navItems, currentPath }: SidebarProps) {
   return (
     <aside className="hidden border-r bg-sidebar md:block w-64 shrink-0">
       <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-        <Link to="/" className="flex items-center gap-2 font-semibold">
-          <span className="text-lg font-bold">EV Spark</span>
+        <Link to="#" className="flex items-center gap-2 font-semibold">
+          <span className="text-lg font-bold">Zap EV</span>
         </Link>
       </div>
       <div className="py-4 px-3 space-y-1">
