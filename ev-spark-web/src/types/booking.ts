@@ -22,3 +22,10 @@ export interface Booking {
   qrCode: string;
   createdAt: string;
 }
+
+export interface CreateBookingData {
+  chargingStationId: string;
+  reservationDateTime: string;
+  durationMinutes: number;
+  notes: string;
+}

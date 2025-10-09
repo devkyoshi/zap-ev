@@ -488,7 +488,6 @@ export default function UsersPage() {
               }
             }}
             onCancel={closeDialog}
-            loading={loading}
           />
         </DialogContent>
       </Dialog>

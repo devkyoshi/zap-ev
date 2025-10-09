@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import {
   Select,
   SelectContent,
@@ -11,52 +9,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-
 import axiosInstance from "@/utils/axiosInstance";
-
-// Add Station interface
-interface Station {
-  id: string;
-  name: string;
-  location: {
-    latitude: number;
-    longitude: number;
-    address: string;
-    city: string;
-    province: string;
-  };
-  type: number;
-  totalSlots: number;
-  availableSlots: number;
-  pricePerHour: number;
-  operatingHours: {
-    openTime: string;
-    closeTime: string;
-    operatingDays: number[];
-  };
-  isActive: boolean;
-  amenities: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T[];
-  errors: string[];
-}
+import type { Station } from "@/types/station";
+import type { ApiResponse } from "@/types/response";
+import type { CreateBookingData } from "@/types/booking";
 
 interface CreateBookingFormProps {
   onSubmit: (data: CreateBookingData) => void;
   onCancel: () => void;
-}
-
-interface CreateBookingData {
-  chargingStationId: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  notes: string;
 }
 
 export function CreateBookingForm({
@@ -78,7 +38,7 @@ export function CreateBookingForm({
     const fetchStations = async () => {
       try {
         setStationsLoading(true);
-        const response = await axiosInstance.get<ApiResponse<Station[]>>(
+        const response = await axiosInstance.get<ApiResponse<Station>>(
           "/ChargingStations"
         );
 

@@ -1,6 +1,5 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -12,21 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { User } from "@/services/user-service";
-
-const userFormSchema = z.object({
-  username: z
-    .string()
-    .min(2, { message: "Username must be at least 2 characters" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  role: z.number().min(1).max(2),
-  password: z
-    .string()
-    .min(6, { message: "Password must be at least 6 characters" })
-    .optional()
-    .or(z.literal("")),
-});
-
-type UserFormValues = z.infer<typeof userFormSchema>;
+import { userFormSchema, type UserFormValues } from "@/types/user";
 
 interface UserFormProps {
   user: User | null;

@@ -6,10 +6,9 @@ import {
   XCircle,
   Calendar,
   Clock,
-  Plus,
   Check,
+  Plus,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,35 +40,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { BookingDetailView } from "./BookingDetailView";
 import axiosInstance from "@/utils/axiosInstance";
 import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
 import { CreateBookingForm } from "./BookinCreate";
-
-interface Booking {
-  id: string;
-  evOwnerNIC: string;
-  chargingStationName: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  status: number;
-  totalAmount: number;
-  qrCode: string;
-  createdAt: string;
-}
+import type { Booking, CreateBookingData } from "@/types/booking";
+import { getStatusBadgeClasses } from "./BookingSupport";
 
 type ActionDialogState = {
   isOpen: boolean;
   action: "view" | "cancel" | "create" | "approve" | null;
   booking: Booking | null;
 };
-interface CreateBookingData {
-  chargingStationId: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  notes: string;
-}
+
 export default function BookingsManagementPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -203,25 +186,6 @@ export default function BookingsManagementPage() {
       minute: "2-digit",
     });
 
-  const getStatusBadgeClasses = (status: number) => {
-    switch (status) {
-      case BookingStatus.PENDING:
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case BookingStatus.APPROVED:
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case BookingStatus.IN_PROGRESS:
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case BookingStatus.COMPLETED:
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case BookingStatus.CANCELLED:
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-      case BookingStatus.NO_SHOW:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
-  };
-
   if (loading && bookings.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -292,9 +256,9 @@ export default function BookingsManagementPage() {
             </SelectContent>
           </Select>
         </div>
-        {/* <Button onClick={openCreateDialog}>
+        <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" /> Create Booking
-        </Button> */}
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -347,9 +311,9 @@ export default function BookingsManagementPage() {
                     >
                       {
                         BookingStatusLabel[
-                          Object.keys(BookingStatus)[
-                            Object.values(BookingStatus).indexOf(b.status)
-                          ] as keyof typeof BookingStatus
+                        Object.keys(BookingStatus)[
+                        Object.values(BookingStatus).indexOf(b.status as BookingStatus)
+                        ] as keyof typeof BookingStatus
                         ]
                       }
                     </span>

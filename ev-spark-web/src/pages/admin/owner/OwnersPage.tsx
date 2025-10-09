@@ -43,36 +43,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import axiosInstance from "@/utils/axiosInstance";
 import { OwnerForm } from "./OwnerForm";
-
-interface Vehicle {
-  make: string;
-  model: string;
-  licensePlate: string;
-  year: number;
-}
-
-interface EVOwner {
-  id: string;
-  nic: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  passwordHash: string;
-  password?: string;
-  isActive: boolean;
-  vehicleDetails: Vehicle[];
-  lastLogin: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T[];
-  errors: string[];
-}
+import type { EVOwner } from "@/types/vehicle";
+import type { ApiResponse } from "@/types/response";
 
 type ActionDialogState = {
   isOpen: boolean;

@@ -7,11 +7,11 @@ import { Toaster } from "sonner";
 
 import { ThemeProvider } from "./components/theme-provider";
 // Admin Pages
-import AdminDashboard from "./pages/admin/Dashboard";
-import UsersPage from "./pages/admin/UsersPage";
-import OwnersPage from "./pages/admin/OwnersPage";
-import StationsManagementPage from "./pages/admin/StationsManagementPage";
-import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
+import AdminDashboard from "./pages/admin/dashboard/Dashboard";
+import UsersPage from "./pages/admin/users/UsersPage";
+import OwnersPage from "./pages/admin/owner/OwnersPage";
+import StationsManagementPage from "./pages/admin/station/StationsManagementPage";
+import BookingsManagementPage from "./pages/admin/booking/BookingsManagementPage";
 
 // Operator Pages
 import OperatorStationsManagementPage from "./pages/stationOperator/OperatorStationsManagementPage";
@@ -30,7 +30,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import ErrorPage from "./pages/ErrorPage";
 import RegisterPageUser from "./pages/auth/RegisterPageUser";
-import ProfilePage from "./pages/admin/Profile";
+import ProfilePage from "./pages/admin/profile/Profile";
 // Application router configuration
 
 const router = createBrowserRouter([
