@@ -87,7 +87,8 @@ namespace EVChargingStationAPI.Services
                         Role = user.Role.ToString(),
                         UserId = user.Id,
                         AccessTokenExpiresAt = accessTokenExpiry,
-                        RefreshTokenExpiresAt = refreshTokenExpiry
+                        RefreshTokenExpiresAt = refreshTokenExpiry,
+                        ChargingStationIds = user.ChargingStationIds ?? new List<string>()
                     }
                 };
             }

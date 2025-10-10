@@ -1,0 +1,214 @@
+import { Car, Users, Zap, Calendar } from "lucide-react";
+import { StatsCard, StatsGrid } from "@/components/dashboard/stats-card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import axiosInstance from "@/utils/axiosInstance";
+import type { EVOwner } from "@/types/vehicle";
+import type { Booking } from "@/types/booking";
+import type { Station } from "@/types/station";
+import type { ApiResponse } from "@/types/response";
+
+const AdminDashboard = () => {
+  const [chargingStations, setChargingStations] = useState<Station[]>(
+    []
+  );
+  const [evOwners, setEvOwners] = useState<EVOwner[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch all API data in parallel using axiosInstance
+        const [stationsRes, ownersRes, bookingsRes] = await Promise.all([
+          axiosInstance.get<ApiResponse<Station>>("/ChargingStations"),
+          axiosInstance.get<ApiResponse<EVOwner>>("/EVOwners"),
+          axiosInstance.get<ApiResponse<Booking>>("/Bookings"),
+        ]);
+
+        if (stationsRes.data.success) {
+          setChargingStations(stationsRes.data.data);
+        }
+
+        if (ownersRes.data.success) {
+          setEvOwners(ownersRes.data.data);
+        }
+
+        if (bookingsRes.data.success) {
+          setBookings(bookingsRes.data.data);
+        }
+      } catch (err: any) {
+        console.error("Error fetching dashboard data:", err);
+        setError(
+          err.response?.data?.message ||
+          err.message ||
+          "An error occurred while fetching dashboard data."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+  // Calculate statistics from the API data
+  const totalEVOwners = evOwners.length;
+  const totalActiveStations = chargingStations.filter(
+    (station) => station.isActive
+  ).length;
+  const pendingBookings = bookings.filter(
+    (booking) => booking.status === 2
+  ).length; // Assuming status 2 is "pending"
+  const totalRegisteredVehicles = evOwners.reduce(
+    (total, owner) => total + owner.vehicleDetails.length,
+    0
+  );
+
+  const stats = [
+    {
+      title: "Total EV Owners",
+      value: totalEVOwners.toString(),
+      icon: Users,
+      description: "Active registered users",
+    },
+    {
+      title: "Total Active Stations",
+      value: totalActiveStations.toString(),
+      icon: Zap,
+      description: "Across all regions",
+    },
+    {
+      title: "Pending Bookings",
+      value: pendingBookings.toString(),
+      icon: Calendar,
+      description: "Awaiting confirmation",
+    },
+    {
+      title: "Registered Vehicles",
+      value: totalRegisteredVehicles.toString(),
+      icon: Car,
+      description: "All electric vehicles",
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-lg">Loading dashboard data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-lg text-red-500">Error: {error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+        <p className="text-muted-foreground">
+          Overview of the EV charging station system
+        </p>
+      </div>
+
+      <StatsGrid>
+        {stats.map((stat, index) => (
+          <StatsCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            description={stat.description}
+            icon={stat.icon}
+          />
+        ))}
+      </StatsGrid>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="h-[300px]">
+          <CardHeader>
+            <CardTitle>Recent Stations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-[220px] flex-col space-y-2 overflow-y-auto">
+              {bookings.slice(0, 3).map((booking) => (
+                <div key={booking.id} className="p-2 border rounded">
+                  <p className="text-sm font-medium">
+                    {booking.chargingStationName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(booking.reservationDateTime).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+              {bookings.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No recent activities
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-[300px]">
+          <CardHeader>
+            <CardTitle>Booking Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-[220px] flex-col justify-center space-y-3 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+              <p>Total Bookings: {bookings.length}</p>
+
+              <p>
+                Upcoming Bookings:{" "}
+                {
+                  bookings.filter(
+                    (b) => new Date(b.reservationDateTime) > new Date()
+                  ).length
+                }
+              </p>
+
+              <p>
+                Last Booking:{" "}
+                {bookings.length > 0
+                  ? new Date(
+                    [...bookings].sort(
+                      (a, b) =>
+                        new Date(b.reservationDateTime).getTime() -
+                        new Date(a.reservationDateTime).getTime()
+                    )[0].reservationDateTime
+                  ).toLocaleDateString()
+                  : "N/A"}
+              </p>
+
+              <p>
+                Most Frequent Station:{" "}
+                {(() => {
+                  const freqMap: Record<string, number> = {};
+                  bookings.forEach((b) => {
+                    freqMap[b.chargingStationName] =
+                      (freqMap[b.chargingStationName] || 0) + 1;
+                  });
+
+                  const mostUsed = Object.entries(freqMap).sort(
+                    (a, b) => b[1] - a[1]
+                  )[0]?.[0];
+
+                  return mostUsed || "N/A";
+                })()}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;

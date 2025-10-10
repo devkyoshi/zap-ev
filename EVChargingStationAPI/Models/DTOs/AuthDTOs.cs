@@ -39,6 +39,7 @@ namespace EVChargingStationAPI.Models.DTOs
         public string UserId { get; set; } = string.Empty;
         public DateTime AccessTokenExpiresAt { get; set; }
         public DateTime RefreshTokenExpiresAt { get; set; }
+        public List<string> ChargingStationIds { get; set; } = new List<string>();
     }
 
     public class RefreshTokenRequestDTO

@@ -291,5 +291,41 @@ namespace EVChargingStationAPI.Services
                 };
             }
         }
+
+        /// <summary>
+        /// Gets all unassigned station operators
+        /// </summary>
+        public async Task<ApiResponseDTO<List<User>>> GetUnassignedStationOperatorsAsync()
+        {
+            try
+            {
+                var unassignedOperators = await _users.Find(u =>
+                    u.Role == UserRole.StationOperator &&
+                    u.IsActive &&
+                    (u.ChargingStationIds == null || !u.ChargingStationIds.Any())
+                ).ToListAsync();
+
+                // Remove password hashes from response
+                foreach (var user in unassignedOperators)
+                {
+                    user.PasswordHash = string.Empty;
+                }
+
+                return new ApiResponseDTO<List<User>>
+                {
+                    Success = true,
+                    Message = "Unassigned station operators retrieved successfully",
+                    Data = unassignedOperators
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<List<User>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving unassigned station operators"
+                };
+            }
+        }
     }
 }

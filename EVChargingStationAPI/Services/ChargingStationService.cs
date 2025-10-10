@@ -18,21 +18,22 @@ namespace EVChargingStationAPI.Services
     {
         private readonly IMongoCollection<ChargingStation> _chargingStations;
         private readonly IMongoCollection<Booking> _bookings;
+        private readonly IMongoDatabase _database;
 
         /// <summary>
         /// Constructor to initialize charging station service with database collections
         /// </summary>
         public ChargingStationService(IMongoClient mongoClient)
         {
-            var database = mongoClient.GetDatabase("EVChargingStationDB");
-            _chargingStations = database.GetCollection<ChargingStation>("ChargingStations");
-            _bookings = database.GetCollection<Booking>("Bookings");
+            _database = mongoClient.GetDatabase("EVChargingStationDB");
+            _chargingStations = _database.GetCollection<ChargingStation>("ChargingStations");
+            _bookings = _database.GetCollection<Booking>("Bookings");
         }
 
         /// <summary>
         /// Creates a new charging station
         /// </summary>
-        public async Task<ApiResponseDTO<ChargingStation>> CreateChargingStationAsync(CreateChargingStationDTO createStationDto)
+        public async Task<ApiResponseDTO<ChargingStation>> CreateChargingStationAsync(CreateChargingStationDTO createStationDto, string backOfficeUserId)
         {
             try
             {
@@ -62,6 +63,11 @@ namespace EVChargingStationAPI.Services
                 };
 
                 await _chargingStations.InsertOneAsync(chargingStation);
+
+                // Add the created station to the BackOffice user’s managed list
+                var userCollection = _database.GetCollection<User>("Users");
+                var userUpdate = Builders<User>.Update.AddToSet(u => u.ChargingStationIds, chargingStation.Id);
+                await userCollection.UpdateOneAsync(u => u.Id == backOfficeUserId, userUpdate);
 
                 return new ApiResponseDTO<ChargingStation>
                 {
@@ -142,12 +148,73 @@ namespace EVChargingStationAPI.Services
         }
 
         /// <summary>
-        /// Updates an existing charging station
+        /// Retrieves all charging stations by the operator
         /// </summary>
-        public async Task<ApiResponseDTO<ChargingStation>> UpdateChargingStationAsync(string id, UpdateChargingStationDTO updateStationDto)
+        public async Task<ApiResponseDTO<List<ChargingStation>>> GetChargingStationsByOperatorIdAsync(string id)
         {
             try
             {
+                var userCollection = _database.GetCollection<User>("Users");
+                var operatorUser = await userCollection.Find(u => u.Id == id && u.Role == UserRole.StationOperator).FirstOrDefaultAsync();
+
+                if (operatorUser == null)
+                {
+                    return new ApiResponseDTO<List<ChargingStation>>
+                    {
+                        Success = false,
+                        Message = "Operator not found",
+                        Data = null
+                    };
+                }
+
+                if (operatorUser.ChargingStationIds == null || !operatorUser.ChargingStationIds.Any())
+                {
+                    return new ApiResponseDTO<List<ChargingStation>>
+                    {
+                        Success = true,
+                        Message = "No charging stations assigned to this operator",
+                        Data = new List<ChargingStation>()
+                    };
+                }
+
+                var filter = Builders<ChargingStation>.Filter.In(s => s.Id, operatorUser.ChargingStationIds);
+                var stations = await _chargingStations.Find(filter).ToListAsync();
+
+                return new ApiResponseDTO<List<ChargingStation>>
+                {
+                    Success = true,
+                    Message = "Charging stations retrieved successfully",
+                    Data = stations
+                };
+            }
+            catch (Exception)
+            {
+                return new ApiResponseDTO<List<ChargingStation>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving charging stations",
+                    Data = null
+                };
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing charging station
+        /// </summary>
+        public async Task<ApiResponseDTO<ChargingStation>> UpdateChargingStationAsync(string id, UpdateChargingStationDTO updateStationDto, string userId)
+        {
+            try
+            {
+                //// Check if user has permission to update the station
+                //if (!await CanUserAccessStation(userId, id))
+                //{
+                //    return new ApiResponseDTO<ChargingStation>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to update this charging station"
+                //    };
+                //}
+
                 var existingStation = await _chargingStations.Find(s => s.Id == id).FirstOrDefaultAsync();
                 if (existingStation == null)
                 {
@@ -232,10 +299,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Deletes a charging station from the system
         /// </summary>
-        public async Task<ApiResponseDTO<bool>> DeleteChargingStationAsync(string id)
+        public async Task<ApiResponseDTO<bool>> DeleteChargingStationAsync(string id, string userId)
         {
             try
             {
+                // Check if user has permission to delete the station
+                //if (!await CanUserAccessStation(userId, id))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to delete this charging station"
+                //    };
+                //}
+
                 // Check if charging station has active bookings
                 var activeBookings = await _bookings.Find(b =>
                     b.ChargingStationId == id &&
@@ -250,6 +327,11 @@ namespace EVChargingStationAPI.Services
                         Message = "Cannot delete charging station with active bookings"
                     };
                 }
+
+                // Remove this station ID from all users' station lists before deleting
+                var userCollection = _database.GetCollection<User>("Users");
+                var updateUsers = Builders<User>.Update.Pull(u => u.ChargingStationIds, id);
+                await userCollection.UpdateManyAsync(u => u.ChargingStationIds.Contains(id), updateUsers);
 
                 var result = await _chargingStations.DeleteOneAsync(s => s.Id == id);
 
@@ -282,10 +364,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Activates or deactivates a charging station
         /// </summary>
-        public async Task<ApiResponseDTO<bool>> ActivateDeactivateChargingStationAsync(string id, bool isActive)
+        public async Task<ApiResponseDTO<bool>> ActivateDeactivateChargingStationAsync(string id, bool isActive, string userId)
         {
             try
             {
+                // Check if user has permission to update the station
+                //if (!await CanUserAccessStation(userId, id))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to update this charging station status"
+                //    };
+                //}
+
                 if (!isActive)
                 {
                     // Check if charging station has active bookings
@@ -382,10 +474,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Updates slot availability for a charging station
         /// </summary>
-        public async Task<ApiResponseDTO<bool>> UpdateSlotAvailabilityAsync(string stationId, int availableSlots)
+        public async Task<ApiResponseDTO<bool>> UpdateSlotAvailabilityAsync(string stationId, int availableSlots, string userId)
         {
             try
             {
+                // Check if user has permission to update the station
+                //if (!await CanUserAccessStation(userId, stationId))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to update this charging station's slots"
+                //    };
+                //}
+
                 var station = await _chargingStations.Find(s => s.Id == stationId && s.IsActive).FirstOrDefaultAsync();
                 if (station == null)
                 {
@@ -435,6 +537,202 @@ namespace EVChargingStationAPI.Services
                     Message = "An error occurred while updating slot availability"
                 };
             }
+        }
+
+        /// <summary>
+        /// Assigns a station operator to a charging station
+        /// </summary>
+        public async Task<ApiResponseDTO<bool>> AssignStationOperatorAsync(string stationId, string operatorUserId, string backOfficeUserId)
+        {
+            try
+            {
+                // Check if BackOffice user owns this station
+                //if (!await CanUserAccessStation(backOfficeUserId, stationId))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to assign operators to this station"
+                //    };
+                //}
+
+                var userCollection = _database.GetCollection<User>("Users");
+
+                // Check if operator exists and is a StationOperator
+                var operatorUser = await userCollection.Find(u => u.Id == operatorUserId && u.Role == UserRole.StationOperator).FirstOrDefaultAsync();
+                if (operatorUser == null)
+                {
+                    return new ApiResponseDTO<bool>
+                    {
+                        Success = false,
+                        Message = "Station operator not found"
+                    };
+                }
+
+                // Check if operator already has this station assigned
+                if (operatorUser.ChargingStationIds != null && operatorUser.ChargingStationIds.Contains(stationId))
+                {
+                    return new ApiResponseDTO<bool>
+                    {
+                        Success = false,
+                        Message = "This operator is already assigned to this charging station"
+                    };
+                }
+
+                // Add the new station to their list (can manage multiple)
+                var update = Builders<User>.Update.AddToSet(u => u.ChargingStationIds, stationId);
+                var result = await userCollection.UpdateOneAsync(u => u.Id == operatorUserId, update);
+
+                if (result.ModifiedCount > 0)
+                {
+                    return new ApiResponseDTO<bool>
+                    {
+                        Success = true,
+                        Message = "Station operator assigned successfully",
+                        Data = true
+                    };
+                }
+
+                return new ApiResponseDTO<bool>
+                {
+                    Success = false,
+                    Message = "Failed to assign station operator"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<bool>
+                {
+                    Success = false,
+                    Message = "An error occurred while assigning the station operator"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Revokes a station operator's assignment from a charging station
+        /// </summary>
+        public async Task<ApiResponseDTO<bool>> RevokeStationOperatorAsync(string stationId, string operatorUserId, string backOfficeUserId)
+        {
+            try
+            {
+                // Check if BackOffice user owns this station
+                //if (!await CanUserAccessStation(backOfficeUserId, stationId))
+                //{
+                //    return new ApiResponseDTO<bool>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to revoke operators from this station"
+                //    };
+                //}
+
+                var userCollection = _database.GetCollection<User>("Users");
+
+                // Check if operator exists and is assigned to this station
+                var operatorUser = await userCollection.Find(u =>
+                    u.Id == operatorUserId &&
+                    u.Role == UserRole.StationOperator &&
+                    u.ChargingStationIds.Contains(stationId)
+                ).FirstOrDefaultAsync();
+
+                if (operatorUser == null)
+                {
+                    return new ApiResponseDTO<bool>
+                    {
+                        Success = false,
+                        Message = "Station operator not found or not assigned to this station"
+                    };
+                }
+
+                // Remove only the specific station ID from their list
+                var update = Builders<User>.Update.Pull(u => u.ChargingStationIds, stationId);
+                var result = await userCollection.UpdateOneAsync(u => u.Id == operatorUserId, update);
+
+                if (result.ModifiedCount > 0)
+                {
+                    return new ApiResponseDTO<bool>
+                    {
+                        Success = true,
+                        Message = "Station operator assignment revoked successfully",
+                        Data = true
+                    };
+                }
+
+                return new ApiResponseDTO<bool>
+                {
+                    Success = false,
+                    Message = "Failed to revoke station operator assignment"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<bool>
+                {
+                    Success = false,
+                    Message = "An error occurred while revoking the station operator assignment"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets all users assigned to a specific charging station
+        /// </summary>
+        public async Task<ApiResponseDTO<List<User>>> GetStationAssignedUsersAsync(string stationId, string backOfficeUserId)
+        {
+            try
+            {
+                //// Check if BackOffice user owns this station
+                //if (!await CanUserAccessStation(backOfficeUserId, stationId))
+                //{
+                //    return new ApiResponseDTO<List<User>>
+                //    {
+                //        Success = false,
+                //        Message = "You don't have permission to view users for this station"
+                //    };
+                //}
+
+                var userCollection = _database.GetCollection<User>("Users");
+
+                var assignedUsers = await userCollection.Find(u => u.ChargingStationIds.Contains(stationId)).ToListAsync();
+
+                // Remove password hashes from response
+                foreach (var user in assignedUsers)
+                {
+                    user.PasswordHash = string.Empty;
+                }
+
+                return new ApiResponseDTO<List<User>>
+                {
+                    Success = true,
+                    Message = "Assigned users retrieved successfully",
+                    Data = assignedUsers
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<List<User>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving assigned users"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Checks if a user has access to a specific charging station
+        /// </summary>
+        private async Task<bool> CanUserAccessStation(string userId, string stationId)
+        {
+            var userCollection = _database.GetCollection<User>("Users");
+            var user = await userCollection.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (user == null) return false;
+
+            // BackOffice users can access all stations
+            if (user.Role == UserRole.BackOffice)
+                return true;
+
+            // Station Operator: check if stationId is in their list
+            return user.ChargingStationIds != null && user.ChargingStationIds.Contains(stationId);
         }
 
         /// <summary>

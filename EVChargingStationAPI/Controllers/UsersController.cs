@@ -72,7 +72,7 @@ namespace EVChargingStationAPI.Controllers
         /// Gets all users (BackOffice only)
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "BackOffice")]
+        [Authorize(Roles = "BackOffice,StationOperator")]
         public async Task<IActionResult> GetAllUsers()
         {
             try
@@ -228,6 +228,28 @@ namespace EVChargingStationAPI.Controllers
                 }
 
                 return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Gets all unassigned station operators (BackOffice only)
+        /// </summary>
+        [HttpGet("unassigned-operators")]
+        [Authorize(Roles = "BackOffice,StationOperator")]
+        public async Task<IActionResult> GetUnassignedStationOperators()
+        {
+            try
+            {
+                var result = await _userService.GetUnassignedStationOperatorsAsync();
+                return Ok(result);
             }
             catch (Exception ex)
             {

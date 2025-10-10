@@ -23,7 +23,6 @@ using System.Threading.RateLimiting;
 // Load .env into process environment variables (do this BEFORE creating the builder so configuration picks them up)
 Env.Load();
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -199,10 +198,9 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseGlobalExceptionHandler(); // safe wrapper
+    app.UseHttpsRedirection();
 }
 
-
-//app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
 app.UseRateLimiter();
 app.UseAuthentication();

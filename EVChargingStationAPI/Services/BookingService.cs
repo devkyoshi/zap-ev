@@ -20,6 +20,7 @@ namespace EVChargingStationAPI.Services
         private readonly IMongoCollection<Booking> _bookings;
         private readonly IMongoCollection<ChargingStation> _chargingStations;
         private readonly IMongoCollection<EVOwner> _evOwners;
+        private readonly IMongoCollection<User> _users;
         private readonly IQRService _qrService;
 
         /// <summary>
@@ -31,6 +32,7 @@ namespace EVChargingStationAPI.Services
             _bookings = database.GetCollection<Booking>("Bookings");
             _chargingStations = database.GetCollection<ChargingStation>("ChargingStations");
             _evOwners = database.GetCollection<EVOwner>("EVOwners");
+            _users = database.GetCollection<User>("Users");
             _qrService = qrService;
         }
 
@@ -142,15 +144,168 @@ namespace EVChargingStationAPI.Services
         }
 
         /// <summary>
-        /// Retrieves all bookings from the system
+        /// Retrieves all bookings from the system based on user role and assigned stations
         /// </summary>
-        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync()
+        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync(string userId)
         {
             try
             {
+                // Fetch user
+                var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                if (user == null)
+                {
+                    return new ApiResponseDTO<List<BookingResponseDTO>>
+                    {
+                        Success = false,
+                        Message = "User not found"
+                    };
+                }
+
+                List<Booking> bookings;
+
+                // BackOffice: get all bookings
+                if (user.Role == UserRole.BackOffice)
+                {
+                    bookings = await _bookings.Find(_ => true).ToListAsync();
+                }
+                else
+                {
+                    // Station Operator: must have assigned stations
+                    if (user.ChargingStationIds == null || !user.ChargingStationIds.Any())
+                    {
+                        return new ApiResponseDTO<List<BookingResponseDTO>>
+                        {
+                            Success = false,
+                            Message = "Station Operator is not assigned to any charging stations"
+                        };
+                    }
+
+                    // Get bookings only for assigned station IDs
+                    bookings = await _bookings
+                        .Find(b => user.ChargingStationIds.Contains(b.ChargingStationId))
+                        .ToListAsync();
+                }
+
+                // Build booking responses
+                var bookingResponses = new List<BookingResponseDTO>();
+                foreach (var booking in bookings)
+                {
+                    var chargingStation = await _chargingStations
+                        .Find(s => s.Id == booking.ChargingStationId)
+                        .FirstOrDefaultAsync();
+
+                    bookingResponses.Add(new BookingResponseDTO
+                    {
+                        Id = booking.Id,
+                        EVOwnerNIC = booking.EVOwnerNIC,
+                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ReservationDateTime = booking.ReservationDateTime,
+                        DurationMinutes = booking.DurationMinutes,
+                        Status = booking.Status,
+                        TotalAmount = booking.TotalAmount,
+                        QRCode = booking.QRCode,
+                        CreatedAt = booking.CreatedAt
+                    });
+                }
+
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = true,
+                    Message = "Bookings retrieved successfully",
+                    Data = bookingResponses
+                };
+            }
+            catch (Exception ex)
+            {
+                // Optional: log ex for debugging
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving bookings"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Retrieves all bookings from the system
+        /// </summary>
+        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetAllBookingsAsync2()
+        {
+            try
+            {
+
                 var bookings = await _bookings.Find(_ => true).ToListAsync();
                 var bookingResponses = new List<BookingResponseDTO>();
 
+                foreach (var booking in bookings)
+                {
+                    var chargingStation = await _chargingStations
+                                    .Find(s => s.Id == booking.ChargingStationId)
+                                    .FirstOrDefaultAsync();
+
+                    bookingResponses.Add(new BookingResponseDTO
+                    {
+                        Id = booking.Id,
+                        EVOwnerNIC = booking.EVOwnerNIC,
+                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ReservationDateTime = booking.ReservationDateTime,
+                        DurationMinutes = booking.DurationMinutes,
+                        Status = booking.Status,
+                        TotalAmount = booking.TotalAmount,
+                        QRCode = booking.QRCode,
+                        CreatedAt = booking.CreatedAt
+                    });
+                }
+
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = true,
+                    Message = "Bookings retrieved successfully",
+                    Data = bookingResponses
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponseDTO<List<BookingResponseDTO>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving bookings"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Retrieves bookings for a specific station operator
+        /// </summary>
+        public async Task<ApiResponseDTO<List<BookingResponseDTO>>> GetBookingsByStationOperatorAsync(string operatorId)
+        {
+            try
+            {
+                var user = await _users.Find(u => u.Id == operatorId).FirstOrDefaultAsync();
+                if (user == null)
+                {
+                    return new ApiResponseDTO<List<BookingResponseDTO>>
+                    {
+                        Success = false,
+                        Message = "Operator not found"
+                    };
+                }
+
+                if (user.ChargingStationIds == null || !user.ChargingStationIds.Any())
+                {
+                    return new ApiResponseDTO<List<BookingResponseDTO>>
+                    {
+                        Success = true,
+                        Message = "Not assigned to any charging stations",
+                        Data = new List<BookingResponseDTO>()
+                    };
+                }
+
+                var bookings = await _bookings
+                    .Find(b => user.ChargingStationIds.Contains(b.ChargingStationId))
+                    .ToListAsync();
+
+                var bookingResponses = new List<BookingResponseDTO>();
                 foreach (var booking in bookings)
                 {
                     var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
@@ -437,6 +592,9 @@ namespace EVChargingStationAPI.Services
                     };
                 }
 
+                // Store the original status BEFORE updating
+                var originalStatus = booking.Status;
+
                 var update = Builders<Booking>.Update
                     .Set(b => b.Status, BookingStatus.Cancelled)
                     .Set(b => b.UpdatedAt, DateTime.UtcNow);
@@ -445,6 +603,19 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // If booking was approved, return the slot
+                    if (originalStatus == BookingStatus.Approved || originalStatus == BookingStatus.InProgress)
+                    {
+                        var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                        if (chargingStation != null && chargingStation.AvailableSlots < chargingStation.TotalSlots)
+                        {
+                            var slotUpdate = Builders<ChargingStation>.Update
+                                .Set(s => s.AvailableSlots, chargingStation.AvailableSlots + 1)
+                                .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                            await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                        }
+                    }
+
                     return new ApiResponseDTO<bool>
                     {
                         Success = true,
@@ -472,10 +643,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Approves a pending booking and generates QR code
         /// </summary>
-        public async Task<ApiResponseDTO<BookingResponseDTO>> ApproveBookingAsync(string id)
+        public async Task<ApiResponseDTO<BookingResponseDTO>> ApproveBookingAsync(string id, string userId)
         {
             try
             {
+                // Check authorization
+                if (!await CanUserAccessBooking(userId, id))
+                {
+                    return new ApiResponseDTO<BookingResponseDTO>
+                    {
+                        Success = false,
+                        Message = "You don't have permission to approve this booking"
+                    };
+                }
+
                 var booking = await _bookings.Find(b => b.Id == id && b.Status == BookingStatus.Pending).FirstOrDefaultAsync();
 
                 if (booking == null)
@@ -499,14 +680,24 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // Reduce available slots by 1
+                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                    if (chargingStation != null && chargingStation.AvailableSlots > 0)
+                    {
+                        var slotUpdate = Builders<ChargingStation>.Update
+                            .Set(s => s.AvailableSlots, chargingStation.AvailableSlots - 1)
+                            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                        await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                    }
+
                     var updatedBooking = await _bookings.Find(b => b.Id == id).FirstOrDefaultAsync();
-                    var chargingStation = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
+                    var chargingStationForResponse = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
 
                     var responseDto = new BookingResponseDTO
                     {
                         Id = updatedBooking.Id,
                         EVOwnerNIC = updatedBooking.EVOwnerNIC,
-                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ChargingStationName = chargingStationForResponse?.Name ?? "Unknown Station",
                         ReservationDateTime = updatedBooking.ReservationDateTime,
                         DurationMinutes = updatedBooking.DurationMinutes,
                         Status = updatedBooking.Status,
@@ -542,10 +733,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Starts a booking session
         /// </summary>
-        public async Task<ApiResponseDTO<BookingResponseDTO>> StartBookingAsync(string id)
+        public async Task<ApiResponseDTO<BookingResponseDTO>> StartBookingAsync(string id, string userId)
         {
             try
             {
+                // Check authorization
+                if (!await CanUserAccessBooking(userId, id))
+                {
+                    return new ApiResponseDTO<BookingResponseDTO>
+                    {
+                        Success = false,
+                        Message = "You don't have permission to start this booking"
+                    };
+                }
+
                 var booking = await _bookings.Find(b => b.Id == id && b.Status == BookingStatus.Approved).FirstOrDefaultAsync();
 
                 if (booking == null)
@@ -609,10 +810,20 @@ namespace EVChargingStationAPI.Services
         /// <summary>
         /// Completes a booking session
         /// </summary>
-        public async Task<ApiResponseDTO<BookingResponseDTO>> CompleteBookingAsync(string id)
+        public async Task<ApiResponseDTO<BookingResponseDTO>> CompleteBookingAsync(string id, string userId)
         {
             try
             {
+                // Check authorization
+                if (!await CanUserAccessBooking(userId, id))
+                {
+                    return new ApiResponseDTO<BookingResponseDTO>
+                    {
+                        Success = false,
+                        Message = "You don't have permission to complete this booking"
+                    };
+                }
+
                 var booking = await _bookings.Find(b => b.Id == id && b.Status == BookingStatus.InProgress).FirstOrDefaultAsync();
 
                 if (booking == null)
@@ -633,14 +844,24 @@ namespace EVChargingStationAPI.Services
 
                 if (result.ModifiedCount > 0)
                 {
+                    // Increase available slots by 1
+                    var chargingStation = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+                    if (chargingStation != null && chargingStation.AvailableSlots < chargingStation.TotalSlots)
+                    {
+                        var slotUpdate = Builders<ChargingStation>.Update
+                            .Set(s => s.AvailableSlots, chargingStation.AvailableSlots + 1)
+                            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                        await _chargingStations.UpdateOneAsync(s => s.Id == booking.ChargingStationId, slotUpdate);
+                    }
+
                     var updatedBooking = await _bookings.Find(b => b.Id == id).FirstOrDefaultAsync();
-                    var chargingStation = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
+                    var chargingStationForResponse = await _chargingStations.Find(s => s.Id == updatedBooking.ChargingStationId).FirstOrDefaultAsync();
 
                     var responseDto = new BookingResponseDTO
                     {
                         Id = updatedBooking.Id,
                         EVOwnerNIC = updatedBooking.EVOwnerNIC,
-                        ChargingStationName = chargingStation?.Name ?? "Unknown Station",
+                        ChargingStationName = chargingStationForResponse?.Name ?? "Unknown Station",
                         ReservationDateTime = updatedBooking.ReservationDateTime,
                         DurationMinutes = updatedBooking.DurationMinutes,
                         Status = updatedBooking.Status,
@@ -773,100 +994,122 @@ namespace EVChargingStationAPI.Services
         }
 
         /// <summary>
-        /// Gets enhanced session history with EV owner details for station operators
-        /// </summary>
-        public async Task<ApiResponseDTO<List<SessionHistoryDTO>>> GetSessionHistoryAsync()
-        {
-            try
-            {
-                // Get all bookings with completed or in-progress status
-                var bookings = await _bookings.Find(b => 
-                    b.Status == BookingStatus.Completed || 
-                    b.Status == BookingStatus.InProgress ||
-                    b.Status == BookingStatus.Cancelled ||
-                    b.Status == BookingStatus.NoShow)
-                    .ToListAsync();
-
-                var sessionHistoryList = new List<SessionHistoryDTO>();
-
-                foreach (var booking in bookings)
+                /// Gets enhanced session history with EV owner details for station operators
+                /// </summary>
+                public async Task<ApiResponseDTO<List<SessionHistoryDTO>>> GetSessionHistoryAsync()
                 {
-                    // Get EV Owner details
-                    var evOwner = await _evOwners.Find(e => e.NIC == booking.EVOwnerNIC).FirstOrDefaultAsync();
-                    
-                    // Get Charging Station details
-                    var station = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
-
-                    // Calculate energy delivered (mock calculation based on duration and status)
-                    double? energyDelivered = null;
-                    if (booking.Status == BookingStatus.Completed && booking.ActualStartTime.HasValue && booking.ActualEndTime.HasValue)
+                    try
                     {
-                        var actualDuration = (booking.ActualEndTime.Value - booking.ActualStartTime.Value).TotalMinutes;
-                        energyDelivered = Math.Round(actualDuration / 60.0 * 7.5, 2); // 7.5 kWh per hour
-                    }
+                        // Get all bookings with completed or in-progress status
+                        var bookings = await _bookings.Find(b =>
+                            b.Status == BookingStatus.Completed ||
+                            b.Status == BookingStatus.InProgress ||
+                            b.Status == BookingStatus.Cancelled ||
+                            b.Status == BookingStatus.NoShow)
+                            .ToListAsync();
 
-                    var sessionHistory = new SessionHistoryDTO
-                    {
-                        BookingId = booking.Id,
-                        EVOwnerName = evOwner != null ? $"{evOwner.FirstName} {evOwner.LastName}".Trim() : "Unknown Customer",
-                        EVOwnerNIC = booking.EVOwnerNIC,
-                        EVOwnerPhone = evOwner?.PhoneNumber ?? "N/A",
-                        ChargingStationId = booking.ChargingStationId,
-                        ChargingStationName = station?.Name ?? $"Station {booking.ChargingStationId}",
-                        ReservationDateTime = booking.ReservationDateTime,
-                        DurationMinutes = booking.DurationMinutes,
-                        Status = booking.Status,
-                        StatusDisplayName = GetStatusDisplayName(booking.Status),
-                        TotalAmount = booking.TotalAmount,
-                        ActualStartTime = booking.ActualStartTime,
-                        ActualEndTime = booking.ActualEndTime,
-                        EnergyDelivered = energyDelivered,
-                        Notes = booking.Notes,
-                        CreatedAt = booking.CreatedAt,
-                        CustomerVehicles = evOwner?.VehicleDetails?.Select(v => new VehicleDetailDTO
+                        var sessionHistoryList = new List<SessionHistoryDTO>();
+
+                        foreach (var booking in bookings)
                         {
-                            Make = v.Make,
-                            Model = v.Model,
-                            LicensePlate = v.LicensePlate,
-                            Year = v.Year
-                        }).ToList() ?? new List<VehicleDetailDTO>()
-                    };
+                            // Get EV Owner details
+                            var evOwner = await _evOwners.Find(e => e.NIC == booking.EVOwnerNIC).FirstOrDefaultAsync();
 
-                    sessionHistoryList.Add(sessionHistory);
+                            // Get Charging Station details
+                            var station = await _chargingStations.Find(s => s.Id == booking.ChargingStationId).FirstOrDefaultAsync();
+
+                            // Calculate energy delivered (mock calculation based on duration and status)
+                            double? energyDelivered = null;
+                            if (booking.Status == BookingStatus.Completed && booking.ActualStartTime.HasValue && booking.ActualEndTime.HasValue)
+                            {
+                                var actualDuration = (booking.ActualEndTime.Value - booking.ActualStartTime.Value).TotalMinutes;
+                                energyDelivered = Math.Round(actualDuration / 60.0 * 7.5, 2); // 7.5 kWh per hour
+                            }
+
+                            var sessionHistory = new SessionHistoryDTO
+                            {
+                                BookingId = booking.Id,
+                                EVOwnerName = evOwner != null ? $"{evOwner.FirstName} {evOwner.LastName}".Trim() : "Unknown Customer",
+                                EVOwnerNIC = booking.EVOwnerNIC,
+                                EVOwnerPhone = evOwner?.PhoneNumber ?? "N/A",
+                                ChargingStationId = booking.ChargingStationId,
+                                ChargingStationName = station?.Name ?? $"Station {booking.ChargingStationId}",
+                                ReservationDateTime = booking.ReservationDateTime,
+                                DurationMinutes = booking.DurationMinutes,
+                                Status = booking.Status,
+                                StatusDisplayName = GetStatusDisplayName(booking.Status),
+                                TotalAmount = booking.TotalAmount,
+                                ActualStartTime = booking.ActualStartTime,
+                                ActualEndTime = booking.ActualEndTime,
+                                EnergyDelivered = energyDelivered,
+                                Notes = booking.Notes,
+                                CreatedAt = booking.CreatedAt,
+                                CustomerVehicles = evOwner?.VehicleDetails?.Select(v => new VehicleDetailDTO
+                                {
+                                    Make = v.Make,
+                                    Model = v.Model,
+                                    LicensePlate = v.LicensePlate,
+                                    Year = v.Year
+                                }).ToList() ?? new List<VehicleDetailDTO>()
+                            };
+
+                            sessionHistoryList.Add(sessionHistory);
+                        }
+
+                        return new ApiResponseDTO<List<SessionHistoryDTO>>
+                        {
+                            Success = true,
+                            Message = "Session history retrieved successfully",
+                            Data = sessionHistoryList.OrderByDescending(s => s.CreatedAt).ToList()
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        return new ApiResponseDTO<List<SessionHistoryDTO>>
+                        {
+                            Success = false,
+                            Message = "An error occurred while retrieving session history"
+                        };
+                    }
                 }
 
-                return new ApiResponseDTO<List<SessionHistoryDTO>>
-                {
-                    Success = true,
-                    Message = "Session history retrieved successfully",
-                    Data = sessionHistoryList.OrderByDescending(s => s.CreatedAt).ToList()
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponseDTO<List<SessionHistoryDTO>>
-                {
-                    Success = false,
-                    Message = "An error occurred while retrieving session history"
-                };
-            }
+
+
+        /// <summary>
+        /// Checks if a user can access a specific booking based on their associated charging stations
+        /// </summary>
+        private async Task<bool> CanUserAccessBooking(string userId, string bookingId)
+        {
+            var booking = await _bookings.Find(b => b.Id == bookingId).FirstOrDefaultAsync();
+            if (booking == null) return false;
+
+            var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (user == null) return false;
+
+            // BackOffice users can access any booking
+            if (user.Role == UserRole.BackOffice)
+                return true;
+
+            // Station Operators must match one of their assigned stations
+            return user.ChargingStationIds != null && user.ChargingStationIds.Contains(booking.ChargingStationId);
         }
 
         /// <summary>
-        /// Gets user-friendly status display name
-        /// </summary>
-        private string GetStatusDisplayName(BookingStatus status)
-        {
-            return status switch
-            {
-                BookingStatus.Pending => "Pending Approval",
-                BookingStatus.Approved => "Approved",
-                BookingStatus.InProgress => "In Progress",
-                BookingStatus.Completed => "Completed",
-                BookingStatus.Cancelled => "Cancelled",
-                BookingStatus.NoShow => "No Show",
-                _ => "Unknown"
-            };
-        }
+                /// Gets user-friendly status display name
+                /// </summary>
+                private string GetStatusDisplayName(BookingStatus status)
+                {
+                    return status switch
+                    {
+                        BookingStatus.Pending => "Pending Approval",
+                        BookingStatus.Approved => "Approved",
+                        BookingStatus.InProgress => "In Progress",
+                        BookingStatus.Completed => "Completed",
+                        BookingStatus.Cancelled => "Cancelled",
+                        BookingStatus.NoShow => "No Show",
+                        _ => "Unknown"
+                    };
+                }
+
     }
 }
