@@ -100,7 +100,6 @@ const LoginPage = () => {
   };
 
   return (
-    
     <Card>
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
@@ -181,7 +180,7 @@ const LoginPage = () => {
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
           <Link
-            to="/auth/register"
+            to="/auth/registerUser"
             className="font-medium text-primary hover:underline"
           >
             Register

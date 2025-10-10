@@ -121,13 +121,12 @@ namespace EVChargingStationAPI.Controllers
         /// Gets all bookings (BackOffice and Station Operators)
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "BackOffice,StationOperator")]
+        [Authorize(Roles = "BackOffice")]
         public async Task<IActionResult> GetAllBookings2()
         {
             try
             {
                 var result = await _bookingService.GetAllBookingsAsync2();
-                Console.WriteLine("empty naha" + result);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -139,6 +138,39 @@ namespace EVChargingStationAPI.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Gets bookings for a specific station operator
+        /// </summary>
+        [HttpGet("operator")]
+        [Authorize(Roles = "StationOperator")]
+        public async Task<IActionResult> GetBookingsForStationOperator()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest(new ApiResponseDTO<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
+                var result = await _bookingService.GetBookingsByStationOperatorAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponseDTO<object>
+                {
+                    Success = false,
+                    Message = "An internal error occurred"
+                });
+            }
+        }
+
         /// <summary>
         /// Gets bookings for a specific EV owner
         /// </summary>

@@ -1,6 +1,5 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -11,76 +10,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-
-interface Vehicle {
-  make: string;
-  model: string;
-  licensePlate: string;
-  year: number;
-}
-
-interface EVOwner {
-  id: string;
-  nic: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  password?: string;
-  vehicleDetails: Vehicle[];
-  registeredDate?: string;
-  active?: boolean;
-}
-
-// ------------------ Zod Schemas ------------------
-
-const vehicleSchema = z.object({
-  make: z.string().min(1, { message: "Make is required" }),
-  model: z.string().min(1, { message: "Model is required" }),
-  licensePlate: z.string().min(1, { message: "License plate is required" }),
-  year: z.coerce
-    .number()
-    .min(1900, { message: "Enter a valid year" })
-    .max(new Date().getFullYear() + 1, {
-      message: "Year cannot be in the future",
-    }),
-});
-
-// Schema for creating new owner (with password)
-const createOwnerSchema = z.object({
-  nic: z.string().min(1, { message: "NIC is required" }),
-  firstName: z.string().min(1, { message: "First name is required" }),
-  lastName: z.string().min(1, { message: "Last name is required" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  phoneNumber: z.string().min(1, { message: "Phone number is required" }),
-  password: z
-    .string()
-    .min(6, { message: "Password must be at least 6 characters" }),
-  vehicleDetails: z
-    .array(vehicleSchema)
-    .min(1, { message: "At least one vehicle is required" }),
-});
-
-// Schema for updating owner (password optional)
-const updateOwnerSchema = z.object({
-  nic: z.string().min(1, { message: "NIC is required" }),
-  firstName: z.string().min(1, { message: "First name is required" }),
-  lastName: z.string().min(1, { message: "Last name is required" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  phoneNumber: z.string().min(1, { message: "Phone number is required" }),
-  password: z
-    .string()
-    .min(6, { message: "Password must be at least 6 characters" })
-    .optional()
-    .or(z.literal("")),
-  vehicleDetails: z
-    .array(vehicleSchema)
-    .min(1, { message: "At least one vehicle is required" }),
-});
-
-type CreateOwnerFormValues = z.infer<typeof createOwnerSchema>;
-type UpdateOwnerFormValues = z.infer<typeof updateOwnerSchema>;
-type OwnerFormValues = CreateOwnerFormValues | UpdateOwnerFormValues;
+import type { EVOwner } from "@/types/vehicle";
+import { createOwnerSchema, updateOwnerSchema, type OwnerFormValues } from "@/types/evowner";
 
 // ------------------ Props ------------------
 
@@ -97,43 +28,43 @@ export function OwnerForm({ owner, onSubmit, onCancel }: OwnerFormProps) {
 
   const defaultValues: OwnerFormValues = owner
     ? {
-        nic: owner.nic || "",
-        firstName: owner.firstName || "",
-        lastName: owner.lastName || "",
-        email: owner.email || "",
-        phoneNumber: owner.phoneNumber || "",
-        password: "", // Empty for edits
-        vehicleDetails:
-          owner.vehicleDetails?.length > 0
-            ? owner.vehicleDetails
-            : [
-                {
-                  make: "",
-                  model: "",
-                  licensePlate: "",
-                  year: new Date().getFullYear(),
-                },
-              ],
-      }
+      nic: owner.nic || "",
+      firstName: owner.firstName || "",
+      lastName: owner.lastName || "",
+      email: owner.email || "",
+      phoneNumber: owner.phoneNumber || "",
+      password: "", // Empty for edits
+      vehicleDetails:
+        owner.vehicleDetails?.length > 0
+          ? owner.vehicleDetails
+          : [
+            {
+              make: "",
+              model: "",
+              licensePlate: "",
+              year: new Date().getFullYear(),
+            },
+          ],
+    }
     : {
-        nic: "",
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumber: "",
-        password: "",
-        vehicleDetails: [
-          {
-            make: "",
-            model: "",
-            licensePlate: "",
-            year: new Date().getFullYear(),
-          },
-        ],
-      };
+      nic: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
+      vehicleDetails: [
+        {
+          make: "",
+          model: "",
+          licensePlate: "",
+          year: new Date().getFullYear(),
+        },
+      ],
+    };
 
   const form = useForm<OwnerFormValues>({
-    resolver: zodResolver(isEditMode ? updateOwnerSchema : createOwnerSchema),
+    resolver: zodResolver(isEditMode ? updateOwnerSchema : createOwnerSchema) as any,
     defaultValues: defaultValues as OwnerFormValues,
     mode: "onChange", // This will provide better feedback
   });
@@ -375,8 +306,8 @@ export function OwnerForm({ owner, onSubmit, onCancel }: OwnerFormProps) {
             {form.formState.isSubmitting
               ? "Saving..."
               : owner
-              ? "Update Owner"
-              : "Create Owner"}
+                ? "Update Owner"
+                : "Create Owner"}
           </Button>
         </div>
       </form>

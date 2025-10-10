@@ -18,6 +18,7 @@ namespace EVChargingStationAPI.Services
         Task<ApiResponseDTO<ChargingStation>> CreateChargingStationAsync(CreateChargingStationDTO createStationDto, string backOfficeUserId);
         Task<ApiResponseDTO<List<ChargingStation>>> GetAllChargingStationsAsync();
         Task<ApiResponseDTO<ChargingStation>> GetChargingStationByIdAsync(string id);
+        Task<ApiResponseDTO<List<ChargingStation>>> GetChargingStationsByOperatorIdAsync(string id);
         Task<ApiResponseDTO<ChargingStation>> UpdateChargingStationAsync(string id, UpdateChargingStationDTO updateStationDto, string userId);
         Task<ApiResponseDTO<bool>> DeleteChargingStationAsync(string id, string userId);
         Task<ApiResponseDTO<bool>> ActivateDeactivateChargingStationAsync(string id, bool isActive, string userId);

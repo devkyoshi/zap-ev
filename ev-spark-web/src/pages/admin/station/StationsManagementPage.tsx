@@ -1,42 +1,18 @@
 import { useState, useEffect } from "react";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from "@/components/ui/dropdown-menu";
+import {
   Search,
-  MapPin,
-  Clock,
-  DollarSign,
-  Battery,
-  Wifi,
-  Coffee,
-  Shield,
-  Camera,
-  Car,
   Plus,
-  Trash2,
-  Edit,
-  MoreHorizontal,
-  UserPlus,
-  UserMinus,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import axiosInstance from "@/utils/axiosInstance";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -46,42 +22,11 @@ import {
 } from "@/components/ui/dialog";
 import { StationForm } from "./StationForm";
 import { StationDeleteConfirmation } from "./StationDeleteConfirmation";
-interface Location {
-  latitude: number;
-  longitude: number;
-  address: string;
-  city: string;
-  province: string;
-}
+import type { Station, StationWithOperators } from "@/types/station";
+import type { UserProfile } from "@/types/user";
+import type { ApiResponse } from "@/types/response";
+import StationCard from "./StationCard";
 
-interface OperatingHours {
-  openTime: string;
-  closeTime: string;
-  operatingDays: number[];
-}
-
-interface Station {
-  id: string;
-  name: string;
-  location: Location;
-  type: number;
-  totalSlots: number;
-  availableSlots: number;
-  pricePerHour: number;
-  operatingHours: OperatingHours;
-  isActive: boolean;
-  amenities: string[];
-  createdAt: string;
-  updatedAt: string;
-  assignedOperators?: User[];
-}
-
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data: Station[];
-  errors: string[];
-}
 type ActionDialogState = {
   isOpen: boolean;
   action:
@@ -94,21 +39,12 @@ type ActionDialogState = {
     | null;
   station: Station | null;
 };
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: number;
-  isActive: boolean;
-}
 
-interface StationWithOperators extends Station {
-  assignedOperators?: User[];
-}
 export default function StationsDisplayPage() {
   const [stations, setStations] = useState<Station[]>([]);
-  const [filteredStations, setFilteredStations] = useState<Station[]>([]);
+  const [filteredStations, setFilteredStations] = useState<
+    StationWithOperators[]
+  >([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,19 +55,23 @@ export default function StationsDisplayPage() {
     station: null,
   });
   const [slotUpdateValue, setSlotUpdateValue] = useState<string>("");
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedOperatorId, setSelectedOperatorId] = useState<string>("");
-  const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
+  const [assignedUsers, setAssignedUsers] = useState<UserProfile[]>([]);
   const [loadingAssignedUsers, setLoadingAssignedUsers] = useState(false);
+
   useEffect(() => {
-    const fetchStations = async () => {
+    fetchStations();
+  }, []);
+
+  const fetchStations = async () => {
       try {
         setLoading(true);
         setError(null);
 
         const response = await axiosInstance.get("/ChargingStations");
 
-        const result: ApiResponse = response.data;
+        const result: ApiResponse<Station> = response.data;
 
         if (result.success && Array.isArray(result.data)) {
           const stationsWithOperators = await Promise.all(
@@ -173,8 +113,6 @@ export default function StationsDisplayPage() {
       }
     };
 
-    fetchStations();
-  }, []);
   // GET ASSIGNED USERS
   const fetchAssignedUsers = async (stationId: string) => {
     try {
@@ -213,7 +151,7 @@ export default function StationsDisplayPage() {
         // Refresh stations or update local state
         const fetchStations = async () => {
           const response = await axiosInstance.get("/ChargingStations");
-          const result: ApiResponse = response.data;
+          const result: ApiResponse<Station> = response.data;
           if (result.success && Array.isArray(result.data)) {
             setStations(result.data);
             setFilteredStations(result.data);
@@ -227,6 +165,8 @@ export default function StationsDisplayPage() {
     } catch (err) {
       console.error("Error assigning operator:", err);
       setError("Failed to assign operator");
+    } finally {
+      fetchStations();
     }
   };
 
@@ -245,7 +185,7 @@ export default function StationsDisplayPage() {
         // Refresh stations or update local state
         const fetchStations = async () => {
           const response = await axiosInstance.get("/ChargingStations");
-          const result: ApiResponse = response.data;
+          const result: ApiResponse<Station> = response.data;
           if (result.success && Array.isArray(result.data)) {
             setStations(result.data);
             setFilteredStations(result.data);
@@ -259,6 +199,8 @@ export default function StationsDisplayPage() {
     } catch (err) {
       console.error("Error revoking operator:", err);
       setError("Failed to revoke operator");
+    } finally {
+      fetchStations();
     }
   };
 
@@ -338,6 +280,8 @@ export default function StationsDisplayPage() {
     } catch (err) {
       console.error("Error creating station:", err);
       setError("Failed to create station");
+    } finally {
+      fetchStations();
     }
   };
 
@@ -421,60 +365,6 @@ export default function StationsDisplayPage() {
 
     setFilteredStations(filtered);
   }, [searchQuery, showOnlyAvailable, stations]);
-
-  const getAmenityIcon = (amenity: string) => {
-    const amenityLower = amenity.toLowerCase();
-
-    if (amenityLower.includes("wifi")) return <Wifi className="h-4 w-4" />;
-    if (amenityLower.includes("café") || amenityLower.includes("coffee"))
-      return <Coffee className="h-4 w-4" />;
-    if (amenityLower.includes("security"))
-      return <Shield className="h-4 w-4" />;
-    if (amenityLower.includes("cctv") || amenityLower.includes("surveillance"))
-      return <Camera className="h-4 w-4" />;
-    if (amenityLower.includes("ev") || amenityLower.includes("charging"))
-      return <Battery className="h-4 w-4" />;
-
-    return <Car className="h-4 w-4" />;
-  };
-
-  const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
-  const getDayNames = (days: number[]) => {
-    const dayMap: { [key: number]: string } = {
-      0: "Sun",
-      1: "Mon",
-      2: "Tue",
-      3: "Wed",
-      4: "Thu",
-      5: "Fri",
-      6: "Sat",
-    };
-
-    if (days.length === 7) return "Everyday";
-
-    return days.map((day) => dayMap[day]).join(", ");
-  };
-
-  const getStatusColor = (station: Station) => {
-    if (!station.isActive)
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-    if (station.availableSlots === 0)
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-    return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-  };
-
-  const getStatusText = (station: Station) => {
-    if (!station.isActive) return "Offline";
-    if (station.availableSlots === 0) return "Full";
-    return "Available";
-  };
 
   if (loading) {
     return (
@@ -618,199 +508,16 @@ export default function StationsDisplayPage() {
           </div>
         ) : (
           filteredStations.map((station) => (
-            <Card key={station.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{station.name}</CardTitle>
-                    <CardDescription className="flex items-center mt-1">
-                      <MapPin className="h-3.5 w-3.5 mr-1" />
-                      {station.location.address}, {station.location.city}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(station)}>
-                      {getStatusText(station)}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => openEditDialog(station)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <>
-                          <DropdownMenuItem
-                            onClick={() => openAssignOperatorDialog(station)}
-                          >
-                            <UserPlus className="mr-2 h-4 w-4" /> Assign
-                            Operator
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => openRevokeOperatorDialog(station)}
-                          >
-                            <UserMinus className="mr-2 h-4 w-4" /> Revoke
-                            Operator
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                        </>
-                        <DropdownMenuItem
-                          onClick={() => openDeleteDialog(station)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="pb-4 space-y-4">
-                {/* Availability */}
-                <div
-                  className="flex justify-between items-center p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors"
-                  onClick={() => openUpdateSlotsDialog(station)}
-                >
-                  <div>
-                    <p className="text-sm font-medium">Available Slots</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {station.availableSlots}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Total Slots</p>
-                    <p className="text-lg font-semibold">
-                      {station.totalSlots}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Station Status</span>
-                  </div>
-                  <Switch
-                    checked={station.isActive}
-                    onCheckedChange={(checked) =>
-                      handleUpdateStationStatus(station.id, checked)
-                    }
-                    className="data-[state=checked]:bg-green-500"
-                  />
-                </div>
-                {/* Pricing */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className="text-sm">Price per hour</span>
-                  </div>
-                  <span className="font-semibold">
-                    LKR {station.pricePerHour}
-                  </span>
-                </div>
-
-                {/* Operating Hours */}
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                    <span className="text-sm font-medium">Operating Hours</span>
-                  </div>
-                  <div className="text-sm">
-                    <p>
-                      {formatTime(station.operatingHours.openTime)} -{" "}
-                      {formatTime(station.operatingHours.closeTime)}
-                    </p>
-                    <p className="text-muted-foreground">
-                      {getDayNames(station.operatingHours.operatingDays)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                {station.amenities && station.amenities.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Amenities</p>
-                    <div className="flex flex-wrap gap-2">
-                      {station.amenities.map((amenity, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          {getAmenityIcon(amenity)}
-                          {amenity}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Assigned Operators */}
-                {station.assignedOperators &&
-                  station.assignedOperators.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Assigned Operators</p>
-                      <div className="space-y-2">
-                        {station.assignedOperators.map((operator) => (
-                          <div
-                            key={operator.id}
-                            className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <div className="w-6 h-6 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                                <span className="text-xs font-medium text-blue-600 dark:text-blue-300">
-                                  {operator.email?.charAt(0)}
-                                </span>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {operator.firstName} {operator.lastName}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {operator.email}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                            >
-                              Operator
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                {/* If no operators assigned, show a message (optional) */}
-                {station.assignedOperators &&
-                  station.assignedOperators.length === 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Assigned Operators</p>
-                      <div className="text-center py-3 border border-dashed rounded-md">
-                        <UserMinus className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
-                        <p className="text-xs text-muted-foreground">
-                          No operators assigned
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                {/* Station Type */}
-                <div className="pt-2 border-t">
-                  <Badge variant="outline">Type {station.type} Charger</Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <StationCard 
+              key={station.id}
+              station={station}
+              openEditDialog={openEditDialog}
+              openAssignOperatorDialog={openAssignOperatorDialog}
+              openRevokeOperatorDialog={openRevokeOperatorDialog}
+              openDeleteDialog={openDeleteDialog}
+              openUpdateSlotsDialog={openUpdateSlotsDialog}
+              handleUpdateStationStatus={handleUpdateStationStatus}
+            />
           ))
         )}
       </div>
@@ -930,21 +637,49 @@ export default function StationsDisplayPage() {
                   >
                     Select Operator
                   </label>
-                  <select
-                    id="operator"
-                    value={selectedOperatorId}
-                    onChange={(e) => setSelectedOperatorId(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Select an operator</option>
-                    {users
-                      .filter((user) => user.role === 2 && user.isActive)
-                      .map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.firstName} {user.lastName} ({user.email})
-                        </option>
-                      ))}
-                  </select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full flex justify-between items-center"
+                        id="operator"
+                        aria-haspopup="listbox"
+                      >
+                        {selectedOperatorId
+                          ? (() => {
+                              const selected = users.find(
+                                (user) => user.id === selectedOperatorId
+                              );
+                              console.log(selected);
+                              return selected
+                                ? `${selected.username} (${selected.email})`
+                                : "Select an operator";
+                            })()
+                          : "Select an operator"}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-full">
+                      {users.filter((user) => user.role === 2 && user.isActive).length === 0 ? (
+                        <DropdownMenuItem disabled>No operators available</DropdownMenuItem>
+                      ) : (
+                        users
+                          .filter((user) => user.role === 2 && user.isActive)
+                          .map((user) => (
+                            <DropdownMenuItem
+                              key={user.id}
+                              onSelect={() => setSelectedOperatorId(user.id)}
+                              className={
+                                selectedOperatorId === user.id
+                                  ? "bg-accent text-accent-foreground"
+                                  : ""
+                              }
+                            >
+                              {user.username} ({user.email})
+                            </DropdownMenuItem>
+                          ))
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={closeDialog}>
@@ -995,21 +730,48 @@ export default function StationsDisplayPage() {
                       No operators assigned to this station
                     </div>
                   ) : (
-                    <select
-                      id="operator"
-                      value={selectedOperatorId}
-                      onChange={(e) => setSelectedOperatorId(e.target.value)}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="">Select an operator</option>
-                      {assignedUsers
-                        .filter((user) => user.role === 2 && user.isActive)
-                        .map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.firstName} {user.lastName} ({user.email})
-                          </option>
-                        ))}
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full flex justify-between items-center"
+                          id="operator"
+                          aria-haspopup="listbox"
+                        >
+                          {selectedOperatorId
+                            ? (() => {
+                                const selected = assignedUsers.find(
+                                  (user) => user.id === selectedOperatorId
+                                );
+                                return selected
+                                  ? `${selected.username} (${selected.email})`
+                                  : "Select an operator";
+                              })()
+                            : "Select an operator"}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-full">
+                        {assignedUsers.filter((user) => user.role === 2 && user.isActive).length === 0 ? (
+                          <DropdownMenuItem disabled>No operators available</DropdownMenuItem>
+                        ) : (
+                          assignedUsers
+                            .filter((user) => user.role === 2 && user.isActive)
+                            .map((user) => (
+                              <DropdownMenuItem
+                                key={user.id}
+                                onSelect={() => setSelectedOperatorId(user.id)}
+                                className={
+                                  selectedOperatorId === user.id
+                                    ? "bg-accent text-accent-foreground"
+                                    : ""
+                                }
+                              >
+                                {user.username} ({user.email})
+                              </DropdownMenuItem>
+                            ))
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </div>
                 <div className="flex justify-end space-x-2">

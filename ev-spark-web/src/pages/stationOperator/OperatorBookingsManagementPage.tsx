@@ -6,7 +6,6 @@ import {
   XCircle,
   Calendar,
   Clock,
-  Plus,
   Check,
 } from "lucide-react";
 
@@ -42,34 +41,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { BookingDetailView } from "./BookingDetailView";
 import axiosInstance from "@/utils/axiosInstance";
 import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
-import { CreateBookingForm } from "./BookinCreate";
-
-interface Booking {
-  id: string;
-  evOwnerNIC: string;
-  chargingStationName: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  status: number;
-  totalAmount: number;
-  qrCode: string;
-  createdAt: string;
-}
+import { BookingDetailView } from "./OperatorBookingDetailView";
+import type { Booking } from "@/types/booking";
+import { formatDate, formatTime } from "@/utils/time";
+import { getStatusBadgeClasses } from "../admin/booking/BookingSupport";
 
 type ActionDialogState = {
   isOpen: boolean;
-  action: "view" | "cancel" | "create" | "approve" | null;
+  action: "view" | "cancel" | "create" | "approve" | "start" | null;
   booking: Booking | null;
 };
-interface CreateBookingData {
-  chargingStationId: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  notes: string;
-}
+
 export default function BookingsManagementPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,30 +65,6 @@ export default function BookingsManagementPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const handleCreateBooking = async (data: CreateBookingData) => {
-    try {
-      setError(null);
-
-      const response = await axiosInstance.post("/bookings", {
-        ...data,
-        durationMinutes: Number(data.durationMinutes),
-      });
-
-      if (response.data.success) {
-        await fetchBookings(); // Refresh the list
-        closeDialog();
-      } else {
-        throw new Error(response.data.message || "Failed to create booking");
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create booking";
-      setError(message);
-      console.error("Error creating booking:", err);
-      throw err; // Re-throw to handle in form
-    }
-  };
 
   const handleApproveBooking = async (bookingId: string) => {
     try {
@@ -127,6 +87,28 @@ export default function BookingsManagementPage() {
     }
   };
 
+  const handleStartCharging = async (bookingId: string) => {
+    try {
+      setError(null);
+
+      const response = await axiosInstance.patch(
+        `/bookings/${bookingId}/start`
+      );
+
+      if (response.data.success) {
+        await fetchBookings();
+        closeDialog();
+      } else {
+        throw new Error("Failed to start charging");
+      }
+    } catch (err) {
+      const message = "Failed to start charging";
+      setError(message);
+      console.error("Error starting charging:", err);
+    }
+  };
+
+
   // Add open approve dialog function
   const openApproveDialog = (booking: Booking) => {
     setActionDialog({
@@ -136,14 +118,13 @@ export default function BookingsManagementPage() {
     });
   };
 
-  // Add open create dialog function
-  const openCreateDialog = () => {
+  const openStartChargingDialog = (booking: Booking) => {
     setActionDialog({
       isOpen: true,
-      action: "create",
-      booking: null,
+      action: "start",
+      booking,
     });
-  };
+  }
 
   const closeDialog = () => {
     setActionDialog({ isOpen: false, action: null, booking: null });
@@ -155,7 +136,7 @@ export default function BookingsManagementPage() {
       setLoading(true);
       setError(null);
 
-      const response = await axiosInstance.get("/bookings");
+      const response = await axiosInstance.get("/bookings/operator");
       const data = response.data?.data ?? [];
       setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -189,38 +170,6 @@ export default function BookingsManagementPage() {
 
     return matchesSearch && matchesStatus;
   });
-
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-
-  const formatTime = (dateString: string) =>
-    new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-  const getStatusBadgeClasses = (status: number) => {
-    switch (status) {
-      case BookingStatus.PENDING:
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case BookingStatus.APPROVED:
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case BookingStatus.IN_PROGRESS:
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case BookingStatus.COMPLETED:
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case BookingStatus.CANCELLED:
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-      case BookingStatus.NO_SHOW:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
-  };
 
   if (loading && bookings.length === 0) {
     return (
@@ -348,13 +297,13 @@ export default function BookingsManagementPage() {
                       {
                         BookingStatusLabel[
                           Object.keys(BookingStatus)[
-                            Object.values(BookingStatus).indexOf(b.status)
+                            Object.values(BookingStatus).indexOf(b.status as BookingStatus)
                           ] as keyof typeof BookingStatus
                         ]
                       }
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">${b.totalAmount}</TableCell>
+                  <TableCell className="text-right">${b.totalAmount.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -384,6 +333,15 @@ export default function BookingsManagementPage() {
                             >
                               <XCircle className="mr-2 h-4 w-4" /> Cancel
                               Booking
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {b.status === BookingStatus.APPROVED && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => openStartChargingDialog(b)}
+                            >
+                              <Check className="mr-2 h-4 w-4 text-yellow-600 focus:text-yellow-700" /> Start Charging
                             </DropdownMenuItem>
                           </>
                         )}
@@ -426,7 +384,7 @@ export default function BookingsManagementPage() {
                 <DialogTitle>Approve Booking</DialogTitle>
                 <DialogDescription>
                   Are you sure you want to approve booking{" "}
-                  {actionDialog.booking.id}?
+                  {actionDialog.booking.evOwnerNIC}?
                 </DialogDescription>
               </DialogHeader>
               {error && (
@@ -461,10 +419,33 @@ export default function BookingsManagementPage() {
                   {error}
                 </div>
               )}
-              <CreateBookingForm
-                onSubmit={handleCreateBooking}
-                onCancel={closeDialog}
-              />
+            </>
+          )}
+
+          {/* Add Start Charging Dialog */}
+          {actionDialog.action === "start" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Start Charging</DialogTitle>
+                <DialogDescription>
+                  Start charging the vehicle
+                </DialogDescription>
+              </DialogHeader>
+              {error && (
+                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={closeDialog}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleStartCharging(actionDialog.booking!.id)}
+                >
+                  <Check className="mr-2 h-4 w-4" /> Start Charging
+                </Button>
+              </div>
             </>
           )}
         </DialogContent>

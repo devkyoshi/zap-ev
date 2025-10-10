@@ -3,76 +3,13 @@ import { StatsCard, StatsGrid } from "@/components/dashboard/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
-
-// Types for our API responses
-interface ChargingStation {
-  id: string;
-  name: string;
-  location: {
-    latitude: number;
-    longitude: number;
-    address: string;
-    city: string;
-    province: string;
-  };
-  type: number;
-  totalSlots: number;
-  availableSlots: number;
-  pricePerHour: number;
-  operatingHours: {
-    openTime: string;
-    closeTime: string;
-    operatingDays: number[];
-  };
-  isActive: boolean;
-  amenities: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface VehicleDetail {
-  make: string;
-  model: string;
-  licensePlate: string;
-  year: number;
-}
-
-interface EVOwner {
-  id: string;
-  nic: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  passwordHash: string;
-  isActive: boolean;
-  vehicleDetails: VehicleDetail[];
-  lastLogin: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Booking {
-  id: string;
-  evOwnerNIC: string;
-  chargingStationName: string;
-  reservationDateTime: string;
-  durationMinutes: number;
-  status: number;
-  totalAmount: number;
-  qrCode: string;
-  createdAt: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T[];
-  errors: string[];
-}
+import type { EVOwner } from "@/types/vehicle";
+import type { Booking } from "@/types/booking";
+import type { Station } from "@/types/station";
+import type { ApiResponse } from "@/types/response";
 
 const AdminDashboard = () => {
-  const [chargingStations, setChargingStations] = useState<ChargingStation[]>(
+  const [chargingStations, setChargingStations] = useState<Station[]>(
     []
   );
   const [evOwners, setEvOwners] = useState<EVOwner[]>([]);
@@ -87,7 +24,7 @@ const AdminDashboard = () => {
 
         // Fetch all API data in parallel using axiosInstance
         const [stationsRes, ownersRes, bookingsRes] = await Promise.all([
-          axiosInstance.get<ApiResponse<ChargingStation>>("/ChargingStations"),
+          axiosInstance.get<ApiResponse<Station>>("/ChargingStations"),
           axiosInstance.get<ApiResponse<EVOwner>>("/EVOwners"),
           axiosInstance.get<ApiResponse<Booking>>("/Bookings"),
         ]);
@@ -107,8 +44,8 @@ const AdminDashboard = () => {
         console.error("Error fetching dashboard data:", err);
         setError(
           err.response?.data?.message ||
-            err.message ||
-            "An error occurred while fetching dashboard data."
+          err.message ||
+          "An error occurred while fetching dashboard data."
         );
       } finally {
         setLoading(false);
@@ -241,12 +178,12 @@ const AdminDashboard = () => {
                 Last Booking:{" "}
                 {bookings.length > 0
                   ? new Date(
-                      [...bookings].sort(
-                        (a, b) =>
-                          new Date(b.reservationDateTime).getTime() -
-                          new Date(a.reservationDateTime).getTime()
-                      )[0].reservationDateTime
-                    ).toLocaleDateString()
+                    [...bookings].sort(
+                      (a, b) =>
+                        new Date(b.reservationDateTime).getTime() -
+                        new Date(a.reservationDateTime).getTime()
+                    )[0].reservationDateTime
+                  ).toLocaleDateString()
                   : "N/A"}
               </p>
 

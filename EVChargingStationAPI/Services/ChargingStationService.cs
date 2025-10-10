@@ -148,6 +148,57 @@ namespace EVChargingStationAPI.Services
         }
 
         /// <summary>
+        /// Retrieves all charging stations by the operator
+        /// </summary>
+        public async Task<ApiResponseDTO<List<ChargingStation>>> GetChargingStationsByOperatorIdAsync(string id)
+        {
+            try
+            {
+                var userCollection = _database.GetCollection<User>("Users");
+                var operatorUser = await userCollection.Find(u => u.Id == id && u.Role == UserRole.StationOperator).FirstOrDefaultAsync();
+
+                if (operatorUser == null)
+                {
+                    return new ApiResponseDTO<List<ChargingStation>>
+                    {
+                        Success = false,
+                        Message = "Operator not found",
+                        Data = null
+                    };
+                }
+
+                if (operatorUser.ChargingStationIds == null || !operatorUser.ChargingStationIds.Any())
+                {
+                    return new ApiResponseDTO<List<ChargingStation>>
+                    {
+                        Success = true,
+                        Message = "No charging stations assigned to this operator",
+                        Data = new List<ChargingStation>()
+                    };
+                }
+
+                var filter = Builders<ChargingStation>.Filter.In(s => s.Id, operatorUser.ChargingStationIds);
+                var stations = await _chargingStations.Find(filter).ToListAsync();
+
+                return new ApiResponseDTO<List<ChargingStation>>
+                {
+                    Success = true,
+                    Message = "Charging stations retrieved successfully",
+                    Data = stations
+                };
+            }
+            catch (Exception)
+            {
+                return new ApiResponseDTO<List<ChargingStation>>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving charging stations",
+                    Data = null
+                };
+            }
+        }
+
+        /// <summary>
         /// Updates an existing charging station
         /// </summary>
         public async Task<ApiResponseDTO<ChargingStation>> UpdateChargingStationAsync(string id, UpdateChargingStationDTO updateStationDto, string userId)

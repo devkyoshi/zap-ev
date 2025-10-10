@@ -6,14 +6,22 @@ import {
 import { Toaster } from "sonner";
 
 import { ThemeProvider } from "./components/theme-provider";
-import AdminDashboard from "./pages/admin/Dashboard";
-import UsersPage from "./pages/admin/UsersPage";
-import OwnersPage from "./pages/admin/OwnersPage";
-import StationsManagementPage from "./pages/admin/StationsManagementPage";
-import BookingsManagementPage from "./pages/admin/BookingsManagementPage";
+// Admin Pages
+import AdminDashboard from "./pages/admin/dashboard/Dashboard";
+import UsersPage from "./pages/admin/users/UsersPage";
+import OwnersPage from "./pages/admin/owner/OwnersPage";
+import StationsManagementPage from "./pages/admin/station/StationsManagementPage";
+import BookingsManagementPage from "./pages/admin/booking/BookingsManagementPage";
+
+// Operator Pages
+import OperatorStationsManagementPage from "./pages/stationOperator/OperatorStationsManagementPage";
+import OperatorBookingsManagementPage from "./pages/stationOperator/OperatorBookingsManagementPage";
+import OperatorProfilePage from "./pages/stationOperator/OperatorProfilePage";
+
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
+import OperatorLayout from "./layouts/OperatorLayout";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -22,7 +30,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import OTPVerificationPage from "./pages/auth/OTPVerificationPage";
 import ErrorPage from "./pages/ErrorPage";
 import RegisterPageUser from "./pages/auth/RegisterPageUser";
-import ProfilePage from "./pages/admin/Profile";
+import ProfilePage from "./pages/admin/profile/Profile";
 // Application router configuration
 
 const router = createBrowserRouter([
@@ -122,6 +130,29 @@ const router = createBrowserRouter([
       {
         path: "profile",
         element: <ProfilePage />,
+      },
+    ],
+  },
+  // Station Operator Routes
+  {
+    path: "/operator",
+    element: <OperatorLayout />,
+    children: [
+      {
+        path: "",
+        element: <Navigate to="/operator/stations" replace />,
+      },
+      {
+        path: "stations",
+        element: <OperatorStationsManagementPage />,
+      },
+      {
+        path: "bookings",
+        element: <OperatorBookingsManagementPage />,
+      },
+      {
+        path: "profile",
+        element: <OperatorProfilePage />,
       },
     ],
   },
