@@ -1,8 +1,5 @@
 import { DashboardLayout } from "@/components/dashboard/dashboard-components";
 import {
-  LayoutDashboard,
-  Users,
-  Car,
   Zap,
   Calendar,
 } from "lucide-react";
