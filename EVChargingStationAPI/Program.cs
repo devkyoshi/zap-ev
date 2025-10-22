@@ -152,10 +152,15 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
+            Console.WriteLine($"[CORS] Loaded {allowedOrigins.Length} allowed origins:");
+            foreach (var origin in allowedOrigins)
+            {
+                Console.WriteLine($"[CORS]   → {origin}");
+            }
         }
         else
         {
-            // fallback for development / safety
+            Console.WriteLine("[CORS] ⚠️ No allowed origins configured! CORS policy will allow all.");
             policy.AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader();
