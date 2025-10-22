@@ -41,10 +41,11 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import axiosInstance from "@/utils/axiosInstance";
+
 import { OwnerForm } from "./OwnerForm";
 import type { EVOwner } from "@/types/vehicle";
 import type { ApiResponse } from "@/types/response";
+import api from "@/services/api-client.ts";
 
 type ActionDialogState = {
   isOpen: boolean;
@@ -67,8 +68,8 @@ export default function EVOwnersPage() {
   const fetchOwners = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get<ApiResponse<EVOwner>>(
-        "/EVOwners"
+      const response = await api.get<ApiResponse<EVOwner>>(
+        "/evowners"
       );
 
       if (response.data.success) {
@@ -116,8 +117,8 @@ export default function EVOwnersPage() {
       const owner = owners.find((o) => o.id === ownerId);
       if (!owner) return;
 
-      const response = await axiosInstance.put<ApiResponse<EVOwner>>(
-        `/EVOwners/${ownerId}`,
+      const response = await api.put<ApiResponse<EVOwner>>(
+        `/evowners/${ownerId}`,
         {
           ...owner,
           isActive,
@@ -147,8 +148,8 @@ export default function EVOwnersPage() {
     if (!actionDialog.owner) return;
 
     try {
-      const response = await axiosInstance.delete<ApiResponse<EVOwner>>(
-        `/EVOwners/${actionDialog.owner.id}`
+      const response = await api.delete<ApiResponse<EVOwner>>(
+        `/evowners/${actionDialog.owner.id}`
       );
 
       if (response.data.success) {
@@ -167,8 +168,8 @@ export default function EVOwnersPage() {
 
   const handleCreateOwner = async (data: Partial<EVOwner>) => {
     try {
-      const response = await axiosInstance.post<ApiResponse<EVOwner>>(
-        "/EVOwners/register",
+      const response = await api.post<ApiResponse<EVOwner>>(
+        "/evowners/register",
         {
           nic: data.nic,
           firstName: data.firstName,
@@ -210,8 +211,8 @@ export default function EVOwnersPage() {
         vehicleDetails: data.vehicleDetails,
       };
 
-      const response = await axiosInstance.put<ApiResponse<EVOwner>>(
-        `/EVOwners/${actionDialog.owner.id}`,
+      const response = await api.put<ApiResponse<EVOwner>>(
+        `/evowners/${actionDialog.owner.id}`,
         updateData
       );
 

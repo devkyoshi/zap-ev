@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { Outlet } from "react-router-dom";
 import { useState, useEffect } from "react";
-import axiosInstance from "@/utils/axiosInstance";
+import api from "@/services/api-client.ts";
+
 
 interface DecodedToken {
   nameid: string;
@@ -98,7 +99,7 @@ const AdminLayout = () => {
         throw new Error("User ID not found in token");
       }
 
-      const response = await axiosInstance.get(`/Users/${userId}`);
+      const response = await api.get(`/users/${userId}`);
 
       if (response.data.success) {
         setUserProfile(response.data.data);

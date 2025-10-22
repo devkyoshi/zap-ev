@@ -2,11 +2,12 @@ import { Car, Users, Zap, Calendar } from "lucide-react";
 import { StatsCard, StatsGrid } from "@/components/dashboard/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
-import axiosInstance from "@/utils/axiosInstance";
+
 import type { EVOwner } from "@/types/vehicle";
 import type { Booking } from "@/types/booking";
 import type { Station } from "@/types/station";
 import type { ApiResponse } from "@/types/response";
+import api from "@/services/api-client.ts";
 
 const AdminDashboard = () => {
   const [chargingStations, setChargingStations] = useState<Station[]>(
@@ -24,9 +25,9 @@ const AdminDashboard = () => {
 
         // Fetch all API data in parallel using axiosInstance
         const [stationsRes, ownersRes, bookingsRes] = await Promise.all([
-          axiosInstance.get<ApiResponse<Station>>("/ChargingStations"),
-          axiosInstance.get<ApiResponse<EVOwner>>("/EVOwners"),
-          axiosInstance.get<ApiResponse<Booking>>("/Bookings"),
+            api.get<ApiResponse<Station>>("/chargingstations"),
+            api.get<ApiResponse<EVOwner>>("/evowners"),
+            api.get<ApiResponse<Booking>>("/bookings"),
         ]);
 
         if (stationsRes.data.success) {

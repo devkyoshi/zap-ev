@@ -23,9 +23,9 @@ import { Input } from "@/components/ui/input";
 import { loginSchema } from "@/lib/validation/auth";
 import type { LoginFormValues } from "@/lib/validation/auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import axios from "axios";
 import type { JwtPayload } from "@/services/auth-service";
 import { jwtDecode } from "jwt-decode";
+import api from "@/services/api-client.ts";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -51,12 +51,7 @@ const LoginPage = () => {
         password: data.password,
       };
 
-      const response = await axios.post("/api/Auth/login", loginData, {
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      });
+      const response = await api.post("/auth/login", loginData);
 
       const result = response.data;
 

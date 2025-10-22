@@ -30,7 +30,8 @@ import {
 import { registerSchemaUser } from "@/lib/validation/auth";
 import type { RegisterFormValuesUser } from "@/lib/validation/auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import axios from "axios";
+
+import api from "@/services/api-client.ts";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ const RegisterPage = () => {
     try {
       setIsLoading(true);
 
-      const response = await axios.post("/api/Users/register", data);
+      const response = await api.post("/api/users/register", data);
 
       alert("Registration successful! Please log in.");
       console.log("Registration successful:", response.data);

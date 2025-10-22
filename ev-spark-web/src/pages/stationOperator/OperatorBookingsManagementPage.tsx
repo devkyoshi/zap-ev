@@ -41,12 +41,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import axiosInstance from "@/utils/axiosInstance";
+
 import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
 import { BookingDetailView } from "./OperatorBookingDetailView";
 import type { Booking } from "@/types/booking";
 import { formatDate, formatTime } from "@/utils/time";
 import { getStatusBadgeClasses } from "../admin/booking/BookingSupport";
+import api from "@/services/api-client.ts";
 
 type ActionDialogState = {
   isOpen: boolean;
@@ -70,7 +71,7 @@ export default function BookingsManagementPage() {
     try {
       setError(null);
 
-      const response = await axiosInstance.patch(
+      const response = await api.patch(
         `/bookings/${bookingId}/approve`
       );
 
@@ -91,7 +92,7 @@ export default function BookingsManagementPage() {
     try {
       setError(null);
 
-      const response = await axiosInstance.patch(
+      const response = await api.patch(
         `/bookings/${bookingId}/start`
       );
 
@@ -136,7 +137,7 @@ export default function BookingsManagementPage() {
       setLoading(true);
       setError(null);
 
-      const response = await axiosInstance.get("/bookings/operator");
+      const response = await api.get("/bookings/operator");
       const data = response.data?.data ?? [];
       setBookings(Array.isArray(data) ? data : []);
     } catch (err) {

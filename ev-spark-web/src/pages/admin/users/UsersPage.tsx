@@ -29,8 +29,9 @@ import { Switch } from "@/components/ui/switch";
 
 import { UserForm } from "./UserForm";
 import { UserDeleteConfirmation } from "./UserDeleteConfirmation";
-import axiosInstance from "@/utils/axiosInstance";
+
 import axios from "axios";
+import api from "@/services/api-client.ts";
 
 // Update the User type to match API response
 export interface User {
@@ -74,7 +75,7 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers().then();
   }, []);
 
   const fetchUsers = async () => {
@@ -82,7 +83,7 @@ export default function UsersPage() {
       setLoading(true);
       setError(null);
 
-      const response = await axiosInstance.get<ApiResponse>("/Users");
+      const response = await api.get<ApiResponse>("/users");
 
       if (response.data.success) {
         setUsers(response.data.data);
@@ -153,8 +154,8 @@ export default function UsersPage() {
         payload.password = data.password;
       }
 
-      const response = await axiosInstance.put(
-        `/Users/${actionDialog.user.id}`,
+      const response = await api.put(
+        `/users/${actionDialog.user.id}`,
         payload
       );
 
@@ -186,8 +187,8 @@ export default function UsersPage() {
       setLoading(true);
       setError(null);
 
-      const response = await axiosInstance.delete(
-        `/Users/${actionDialog.user.id}`
+      const response = await api.delete(
+        `/users/${actionDialog.user.id}`
       );
 
       if (response.data.success) {
@@ -211,7 +212,7 @@ export default function UsersPage() {
       const user = users.find((u) => u.id === userId);
       if (!user) return;
 
-      const response = await axiosInstance.put(`/Users/${userId}`, {
+      const response = await api.put(`/users/${userId}`, {
         username: user.username,
         email: user.email,
         role: user.role,

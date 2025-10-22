@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import axiosInstance from "@/utils/axiosInstance";
+
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import type { Station, StationWithOperators } from "@/types/station";
 import type { UserProfile } from "@/types/user";
 import type { ApiResponse } from "@/types/response";
 import StationCard from "./StationCard";
+import api from "@/services/api-client.ts";
 
 type ActionDialogState = {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export default function StationsDisplayPage() {
         setLoading(true);
         setError(null);
 
-        const response = await axiosInstance.get("/ChargingStations");
+        const response = await api.get("/chargingStations");
 
         const result: ApiResponse<Station> = response.data;
 
@@ -77,8 +78,8 @@ export default function StationsDisplayPage() {
           const stationsWithOperators = await Promise.all(
             result.data.map(async (station) => {
               try {
-                const assignedUsersResponse = await axiosInstance.get(
-                  `/ChargingStations/${station.id}/assigned-users`
+                const assignedUsersResponse = await api.get(
+                  `/chargingStations/${station.id}/assigned-users`
                 );
                 if (assignedUsersResponse.data.success) {
                   return {
@@ -117,8 +118,8 @@ export default function StationsDisplayPage() {
   const fetchAssignedUsers = async (stationId: string) => {
     try {
       setLoadingAssignedUsers(true);
-      const response = await axiosInstance.get(
-        `/ChargingStations/${stationId}/assigned-users`
+      const response = await api.get(
+        `/chargingStations/${stationId}/assigned-users`
       );
 
       if (response.data.success) {
@@ -141,8 +142,8 @@ export default function StationsDisplayPage() {
     operatorUserId: string
   ) => {
     try {
-      const response = await axiosInstance.post(
-        `/ChargingStations/${stationId}/assign-operator?operatorUserId=${operatorUserId}`
+      const response = await api.post(
+        `/chargingStations/${stationId}/assign-operator?operatorUserId=${operatorUserId}`
       );
 
       if (response.data.success) {
@@ -150,7 +151,7 @@ export default function StationsDisplayPage() {
 
         // Refresh stations or update local state
         const fetchStations = async () => {
-          const response = await axiosInstance.get("/ChargingStations");
+          const response = await api.get("/chargingStations");
           const result: ApiResponse<Station> = response.data;
           if (result.success && Array.isArray(result.data)) {
             setStations(result.data);
@@ -176,15 +177,15 @@ export default function StationsDisplayPage() {
     operatorUserId: string
   ) => {
     try {
-      const response = await axiosInstance.post(
-        `/ChargingStations/${stationId}/revoke-operator?operatorUserId=${operatorUserId}`
+      const response = await api.post(
+        `/chargingStations/${stationId}/revoke-operator?operatorUserId=${operatorUserId}`
       );
 
       if (response.data.success) {
         await fetchAssignedUsers(stationId);
         // Refresh stations or update local state
         const fetchStations = async () => {
-          const response = await axiosInstance.get("/ChargingStations");
+          const response = await api.get("/chargingStations");
           const result: ApiResponse<Station> = response.data;
           if (result.success && Array.isArray(result.data)) {
             setStations(result.data);
@@ -206,7 +207,7 @@ export default function StationsDisplayPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axiosInstance.get("/Users");
+      const response = await api.get("/users");
       if (response.data.success) {
         setUsers(response.data.data);
       } else {
@@ -223,8 +224,8 @@ export default function StationsDisplayPage() {
     availableSlots: number
   ) => {
     try {
-      const response = await axiosInstance.patch(
-        `/ChargingStations/${stationId}/slots?availableSlots=${availableSlots}`
+      const response = await api.patch(
+        `/chargingStations/${stationId}/slots?availableSlots=${availableSlots}`
       );
 
       if (response.data.success) {
@@ -250,8 +251,8 @@ export default function StationsDisplayPage() {
     isActive: boolean
   ) => {
     try {
-      const response = await axiosInstance.patch(
-        `/ChargingStations/${stationId}/status?isActive=${isActive}`
+      const response = await api.patch(
+        `/chargingStations/${stationId}/status?isActive=${isActive}`
       );
 
       if (response.data.success) {
@@ -272,7 +273,7 @@ export default function StationsDisplayPage() {
   // CREATE
   const handleCreateStation = async (data: Partial<Station>) => {
     try {
-      const response = await axiosInstance.post("/ChargingStations", data);
+      const response = await api.post("/chargingStations", data);
 
       const newStation = response.data.data;
       setStations([...stations, newStation]);
@@ -290,8 +291,8 @@ export default function StationsDisplayPage() {
     if (!actionDialog.station) return;
 
     try {
-      const response = await axiosInstance.put(
-        `/ChargingStations/${actionDialog.station.id}`,
+      const response = await api.put(
+        `/chargingStations/${actionDialog.station.id}`,
         data
       );
 
@@ -313,8 +314,8 @@ export default function StationsDisplayPage() {
     if (!actionDialog.station) return;
 
     try {
-      await axiosInstance.delete(
-        `/ChargingStations/${actionDialog.station.id}`
+      await api.delete(
+        `/chargingStations/${actionDialog.station.id}`
       );
 
       setStations(

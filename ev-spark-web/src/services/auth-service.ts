@@ -1,4 +1,4 @@
-import { apiRequest } from "./api-client";
+import api, { apiRequest } from "./api-client";
 import type { ApiResponse } from "./api-client";
 
 // Types
@@ -40,14 +40,8 @@ export interface AuthResponse {
 
 // Auth API functions
 export const AuthService = {
-  login: async (
-    credentials: AuthCredentials
-  ): Promise<ApiResponse<AuthResponse>> => {
-    return apiRequest({
-      method: "POST",
-      url: "https://localhost:5001/api/Auth/login",
-      data: credentials,
-    });
+    login: async (credentials: AuthCredentials): Promise<ApiResponse<AuthResponse>> => {
+    return api.post("/auth/login", credentials);
   },
 
   register: async (data: RegisterData): Promise<ApiResponse> => {
@@ -75,6 +69,6 @@ export const AuthService = {
   },
 
   logout: async (): Promise<void> => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
   },
 };

@@ -9,10 +9,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import axiosInstance from "@/utils/axiosInstance";
+
 import type { Station } from "@/types/station";
 import type { ApiResponse } from "@/types/response";
 import type { CreateBookingData } from "@/types/booking";
+import api from "@/services/api-client.ts";
 
 interface CreateBookingFormProps {
   onSubmit: (data: CreateBookingData) => void;
@@ -38,8 +39,8 @@ export function CreateBookingForm({
     const fetchStations = async () => {
       try {
         setStationsLoading(true);
-        const response = await axiosInstance.get<ApiResponse<Station>>(
-          "/ChargingStations"
+        const response = await api.get<ApiResponse<Station>>(
+          "/chargingstations"
         );
 
         const result = response.data;

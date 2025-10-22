@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import axiosInstance from "@/utils/axiosInstance";
+
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import type { ApiResponse } from "@/types/response";
 import type { Station, StationWithOperators } from "@/types/station";
+import api from "@/services/api-client.ts";
 
 type ActionDialogState = {
   isOpen: boolean;
@@ -61,7 +62,7 @@ export default function StationsDisplayPage() {
         setLoading(true);
         setError(null);
 
-        const response = await axiosInstance.get("/ChargingStations/operator");
+        const response = await api.get("/chargingStations/operator");
 
         const result: ApiResponse<Station> = response.data;
 
@@ -69,8 +70,8 @@ export default function StationsDisplayPage() {
           const stationsWithOperators = await Promise.all(
             result.data.map(async (station) => {
               try {
-                const assignedUsersResponse = await axiosInstance.get(
-                  `/ChargingStations/${station.id}/assigned-users`
+                const assignedUsersResponse = await api.get(
+                  `/chargingStations/${station.id}/assigned-users`
                 );
                 if (assignedUsersResponse.data.success) {
                   return {
@@ -105,7 +106,7 @@ export default function StationsDisplayPage() {
       }
     };
 
-    fetchStations();
+    fetchStations().then()
   }, []);
 
   const handleUpdateSlotAvailability = async (
@@ -113,8 +114,8 @@ export default function StationsDisplayPage() {
     availableSlots: number
   ) => {
     try {
-      const response = await axiosInstance.patch(
-        `/ChargingStations/${stationId}/slots?availableSlots=${availableSlots}`
+      const response = await api.patch(
+        `/chargingStations/${stationId}/slots?availableSlots=${availableSlots}`
       );
 
       if (response.data.success) {

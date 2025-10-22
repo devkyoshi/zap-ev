@@ -17,7 +17,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import axiosInstance from "@/utils/axiosInstance";
+import api from "@/services/api-client.ts";
+import {getUserIdFromToken} from "@/utils/user.utils.ts";
+
 
 interface UserProfile {
   username: string;
@@ -32,17 +34,7 @@ interface UserProfile {
   updatedAt: string;
 }
 
-interface DecodedToken {
-  nameid: string;
-  role: string;
-  UserType: string;
-  jti: string;
-  iat: number;
-  nbf: number;
-  exp: number;
-  iss: string;
-  aud: string;
-}
+
 
 const RoleLabels: { [key: number]: string } = {
   1: "BackOffice",
@@ -54,19 +46,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getUserIdFromToken = (): string | null => {
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) return null;
 
-      // Decode JWT token payload
-      const payload = JSON.parse(atob(token.split(".")[1])) as DecodedToken;
-      return payload.nameid;
-    } catch (err) {
-      console.error("Error decoding token:", err);
-      return null;
-    }
-  };
+
 
   const fetchUserProfile = async () => {
     try {
@@ -78,7 +59,7 @@ export default function ProfilePage() {
         throw new Error("User ID not found in token");
       }
 
-      const response = await axiosInstance.get(`/Users/${userId}`);
+      const response = await api.get(`/users/${userId}`);
 
       if (response.data.success) {
         setProfile(response.data.data);
@@ -100,7 +81,7 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    fetchUserProfile();
+    fetchUserProfile().then();
   }, []);
 
   const formatDate = (dateString: string) =>

@@ -41,11 +41,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BookingDetailView } from "./BookingDetailView";
-import axiosInstance from "@/utils/axiosInstance";
+
 import { BookingStatus, BookingStatusLabel } from "@/utils/bookingStatus";
 import { CreateBookingForm } from "./BookinCreate";
 import type { Booking, CreateBookingData } from "@/types/booking";
 import { getStatusBadgeClasses } from "./BookingSupport";
+import api from "@/services/api-client.ts";
 
 type ActionDialogState = {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export default function BookingsManagementPage() {
     try {
       setError(null);
 
-      const response = await axiosInstance.post("/bookings", {
+      const response = await api.post("/bookings", {
         ...data,
         durationMinutes: Number(data.durationMinutes),
       });
@@ -93,7 +94,7 @@ export default function BookingsManagementPage() {
     try {
       setError(null);
 
-      const response = await axiosInstance.patch(
+      const response = await api.patch(
         `/bookings/${bookingId}/approve`
       );
 
@@ -138,7 +139,7 @@ export default function BookingsManagementPage() {
       setLoading(true);
       setError(null);
 
-      const response = await axiosInstance.get("/bookings");
+      const response = await api.get("/bookings");
       const data = response.data?.data ?? [];
       setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -151,7 +152,7 @@ export default function BookingsManagementPage() {
   };
 
   useEffect(() => {
-    fetchBookings();
+    fetchBookings().then();
   }, []);
 
   const openViewDialog = (booking: Booking) =>

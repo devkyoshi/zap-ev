@@ -2,7 +2,9 @@ import axios, { AxiosError } from "axios";
 import type { AxiosInstance, AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const baseURL = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
+const API_URL = baseURL + "/api";
 
 // Types for API responses
 export interface ApiResponse<T = any> {
@@ -13,8 +15,9 @@ export interface ApiResponse<T = any> {
 }
 
 // Create Axios instance with default config
-const apiClient: AxiosInstance = axios.create({
+const api: AxiosInstance = axios.create({
   baseURL: API_URL,
+
   headers: {
     "Content-Type": "application/json",
   },
@@ -22,9 +25,9 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 // Request interceptor to add auth token
-apiClient.interceptors.request.use(
+api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("authToken");
     if (token && config.headers) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }
@@ -36,7 +39,7 @@ apiClient.interceptors.request.use(
 );
 
 // Response interceptor to handle errors
-apiClient.interceptors.response.use(
+api.interceptors.response.use(
   (response) => {
     return response;
   },
@@ -46,7 +49,7 @@ apiClient.interceptors.response.use(
     if (response?.status === 401) {
       // Handle unauthorized access
       toast.error("Session expired. Please log in again.");
-      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
       window.location.href = "/auth/login";
     } else if (response?.status === 403) {
       toast.error("You don't have permission to perform this action.");
@@ -65,7 +68,7 @@ export async function apiRequest<T = any>(
   config: AxiosRequestConfig
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await apiClient(config);
+    const response = await api(config);
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ApiResponse>;
@@ -77,4 +80,4 @@ export async function apiRequest<T = any>(
   }
 }
 
-export default apiClient;
+export default api;
