@@ -8,7 +8,7 @@ public class ApiConfig {
     // Base URL configurations
     private static final String LOCAL_BASE_URL = "https://45133808bf01.ngrok-free.app/api/";
     private static final String DEVELOPMENT_BASE_URL = "https://your-dev-server.com/api/";
-    private static final String PRODUCTION_BASE_URL = "https://your-production-server.com/api/";
+    private static final String PRODUCTION_BASE_URL = "https://zap-ev-api.ashybush-72e658ae.southeastasia.azurecontainerapps.io/api/";
     
     // Current environment - change this based on your deployment
     public enum Environment {
@@ -18,7 +18,7 @@ public class ApiConfig {
     }
     
     // Set your current environment here
-    private static final Environment CURRENT_ENVIRONMENT = Environment.LOCAL;
+    private static final Environment CURRENT_ENVIRONMENT = Environment.PRODUCTION;
     
     /**
      * Get the base URL based on current environment

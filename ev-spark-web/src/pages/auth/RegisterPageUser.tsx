@@ -52,7 +52,7 @@ const RegisterPage = () => {
     try {
       setIsLoading(true);
 
-      const response = await api.post("/api/users/register", data);
+      const response = await api.post("/users/register", data);
 
       alert("Registration successful! Please log in.");
       console.log("Registration successful:", response.data);
