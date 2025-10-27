@@ -31,16 +31,25 @@ Install-Package DotNetEnv
 Create a `.env` file in the project root with the following keys:
 
 ```dotenv
-ConnectionStrings__MongoDB=your-mongo-connection-string
-JWT__SecretKey=your-secret-key
-JWT__Issuer=your-issuer
-JWT__Audience=your-audience
+# JWT settings
+JWT__SecretKey=X2m#F8!zR5nT@w9sQ4vY1jG^oK6dC7lM3bP0xA+Z8uL5hD2gN7yW1V4J9kS0qE3
+JWT__Issuer=EVChargingStationAPI
+JWT__Audience=EVChargingStationUsers
 JWT__ExpirationMinutes=15
 JWT__ExpirationDays=7
-ASPNETCORE_URLS=http://localhost:5000;https://localhost:5001
+
+# ASP.NET settings
+ASPNETCORE_URLS=https://+:443;http://+:80
 ASPNETCORE_ENVIRONMENT=Development
-Frontend__Origin=https://your-frontend-domain.com
+
+# Frontend origin (e.g., your React/Vue/Angular app URL)
+Frontend__Origin=<<YOUR_FRONTEND_URL>>
+# Rate limiting settings
+RateLimiting__WindowMinutes=1
+RateLimiting__PermitLimit=100
 ```
+
+
 
 # Rate limiting
 RateLimiting__WindowMinutes=1
