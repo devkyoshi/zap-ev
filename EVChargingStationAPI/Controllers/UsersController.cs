@@ -35,6 +35,7 @@ namespace EVChargingStationAPI.Controllers
         /// Creates a new web application user
         /// </summary>
         [HttpPost("register")]
+        [Authorize(Roles = "BackOffice,StationOperator")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDTO createUserDto)
         {
             try

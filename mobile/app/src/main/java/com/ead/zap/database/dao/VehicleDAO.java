@@ -6,13 +6,8 @@ package com.ead.zap.database.dao;
  */
 public class VehicleDAO {
     private String dbPath;
-    
+
     public VehicleDAO(String dbPath) {
         this.dbPath = dbPath;
     }
-    
-    // TODO: Implement vehicle operations as needed
-    // public void insertVehicle(String ownerId, EVOwner.VehicleDetail vehicle) {}
-    // public List<EVOwner.VehicleDetail> getVehiclesByOwner(String ownerId) {}
-    // public void deleteVehicle(int vehicleId) {}
 }
